@@ -1,0 +1,164 @@
+import type { BeadColor } from "./beadColors";
+import { BEAD_PALETTE } from "./beadColors";
+import colorSystemMapping from "./colorSystemMapping.json";
+
+export type ColorSystemType = "MARD" | "COCO" | "漫漫" | "盼盼" | "咪小窝";
+
+export interface PatternCell {
+  x: number;
+  y: number;
+  color: BeadColor;
+}
+
+export interface ColorStat {
+  color: BeadColor;
+  count: number;
+  originalId: string;
+}
+
+interface DrawOptions {
+  canvas: HTMLCanvasElement;
+  cells: PatternCell[];
+  width: number;
+  height: number;
+  cellSize: number;
+  colorSystem: ColorSystemType;
+  showGrid?: boolean;
+  showLegend?: boolean;
+  gridColor?: string;
+  backgroundColor?: string;
+}
+
+export function drawPattern(options: DrawOptions): void {
+  const {
+    canvas, cells, width, height, cellSize, colorSystem,
+    showGrid = true, showLegend = true,
+    gridColor = "#e5e7eb", backgroundColor = "#ffffff",
+  } = options;
+
+  const ctx = canvas.getContext("2d")!;
+  const margin = 20;
+  const pw = width * cellSize;
+  const ph = height * cellSize;
+
+  // Build color stats
+  const colorCountMap = new Map<string, number>();
+  for (const cell of cells) {
+    if (cell.color.id === "__ERASED__") continue;
+    const c = colorCountMap.get(cell.color.id) || 0;
+    colorCountMap.set(cell.color.id, c + 1);
+  }
+  const stats: ColorStat[] = [];
+  let total = 0;
+  for (const [cid, count] of colorCountMap) {
+    const color = BEAD_PALETTE.find((c) => c.id === cid);
+    if (color) {
+      const mapping = (colorSystemMapping as Record<string, unknown>)[color.hex.toUpperCase()] as Record<string, string> | undefined;
+      const displayColor = mapping ? { ...color, id: mapping[colorSystem] } : color;
+      stats.push({ color: displayColor, count, originalId: color.id });
+      total += count;
+    }
+  }
+  stats.sort((a, b) => b.count - a.count);
+
+  // Calculate legend height
+  let legendHeight = 0;
+  if (showLegend && stats.length > 0) {
+    const itemH = 20;
+    const cols = Math.min(stats.length, Math.floor((pw - 60) / 120));
+    const rows = Math.ceil(stats.length / cols);
+    legendHeight = rows * itemH + 40;
+  }
+
+  const cw = pw + margin * 2;
+  const ch = ph + margin * 2 + legendHeight + (showLegend && stats.length > 0 ? 20 : 0);
+  canvas.width = cw;
+  canvas.height = ch;
+
+  // Background
+  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Draw cells
+  const cellMap = new Map<string, PatternCell>();
+  for (const cell of cells) {
+    cellMap.set(`${cell.x},${cell.y}`, cell);
+  }
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const cell = cellMap.get(`${x},${y}`);
+      const px = margin + x * cellSize;
+      const py = margin + y * cellSize;
+
+      if (cell && cell.color.id !== "__ERASED__") {
+        ctx.fillStyle = cell.color.hex;
+        ctx.fillRect(px, py, cellSize, cellSize);
+      } else {
+        ctx.fillStyle = "#f3f4f6";
+        ctx.fillRect(px, py, cellSize, cellSize);
+      }
+
+      // Grid lines
+      if (showGrid) {
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(px, py, cellSize, cellSize);
+      }
+    }
+  }
+
+  // Draw grid borders
+  ctx.strokeStyle = "#9ca3af";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(margin, margin, pw, ph);
+
+  // Draw legend
+  if (showLegend && stats.length > 0) {
+    const lx = margin + 10;
+    let ly = margin + ph + 30;
+    const itemH = 20;
+    const swatchSize = 12;
+    const cols = Math.min(stats.length, Math.floor((pw - 60) / 120));
+
+    ctx.font = "11px sans-serif";
+    stats.forEach((stat, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = lx + col * 120;
+      const y = ly + row * itemH;
+
+      ctx.fillStyle = stat.color.hex;
+      ctx.fillRect(x, y, swatchSize, swatchSize);
+      ctx.strokeStyle = "#d1d5db";
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x, y, swatchSize, swatchSize);
+
+      ctx.fillStyle = "#374151";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${stat.color.id} x${stat.count}`, x + swatchSize + 4, y + swatchSize / 2);
+    });
+  }
+}
+
+export function renderPatternToCanvas(
+  pixels: number[][],
+  beadColors: BeadColor[],
+  canvas: HTMLCanvasElement,
+  cellSize: number = 20
+): void {
+  const h = pixels.length;
+  const w = pixels[0].length;
+  canvas.width = w * cellSize;
+  canvas.height = h * cellSize;
+  const ctx = canvas.getContext("2d")!;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const color = beadColors[pixels[y][x]] || beadColors[0];
+      ctx.fillStyle = color.hex;
+      ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+    }
+  }
+}

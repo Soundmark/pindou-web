@@ -1,0 +1,110 @@
+"use client";
+
+import { useEffect } from "react";
+import { useCanvas } from "@/hooks/useCanvas";
+import { BEAD_PALETTE } from "@/utils/beadColors";
+
+interface PatternCanvasProps {
+  pixels: number[][];
+  cellSize?: number;
+  highlightedColorId?: number | null;
+  showLabels?: boolean;
+}
+
+function getLuminance(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  // Relative luminance
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function PatternCanvas({
+  pixels,
+  cellSize = 20,
+  highlightedColorId = null,
+  showLabels = false,
+}: PatternCanvasProps) {
+  const { canvasRef } = useCanvas();
+
+  useEffect(() => {
+    if (pixels.length === 0) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const h = pixels.length;
+    const w = pixels[0].length;
+    const cw = w * cellSize;
+    const ch = h * cellSize;
+
+    canvas.width = cw;
+    canvas.height = ch;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const isHighlighting = highlightedColorId !== null && highlightedColorId !== undefined;
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const colorId = pixels[y][x];
+        const color = BEAD_PALETTE[colorId];
+        const px = x * cellSize;
+        const py = y * cellSize;
+
+        // Set alpha for highlighting
+        if (isHighlighting) {
+          ctx.globalAlpha = colorId === highlightedColorId ? 1.0 : 0.25;
+        }
+
+        ctx.fillStyle = color?.hex ?? "#ffffff";
+        ctx.fillRect(px, py, cellSize, cellSize);
+
+        // Reset alpha
+        ctx.globalAlpha = 1.0;
+
+        // Grid lines
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(px, py, cellSize, cellSize);
+
+        // Highlight border on matching cells
+        if (isHighlighting && colorId === highlightedColorId) {
+          ctx.strokeStyle = "#ff8fa3";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+        }
+
+        // Labels
+        if (showLabels && cellSize >= 20 && color) {
+          const luminance = getLuminance(color.hex);
+          ctx.fillStyle = luminance > 0.5 ? "#374151" : "#ffffff";
+          ctx.font = `${Math.max(8, cellSize * 0.4)}px monospace`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(color.id, px + cellSize / 2, py + cellSize / 2);
+        }
+      }
+    }
+  }, [pixels, cellSize, canvasRef, highlightedColorId, showLabels]);
+
+  if (pixels.length === 0) return null;
+
+  const h = pixels.length;
+  const w = pixels[0].length;
+  const cw = w * cellSize;
+  const ch = h * cellSize;
+
+  return (
+    <div className="overflow-auto rounded-2xl shadow-card">
+      <canvas
+        ref={canvasRef}
+        width={cw}
+        height={ch}
+        className="bg-white"
+        style={{ width: cw, height: ch }}
+      />
+    </div>
+  );
+}
