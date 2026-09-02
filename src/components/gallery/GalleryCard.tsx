@@ -1,7 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 interface GalleryCardProps {
   _id: string;
@@ -30,11 +31,12 @@ export function GalleryCard({
   onFavorite,
 }: GalleryCardProps) {
   const { data: session } = useSession();
+  const t = useTranslations("card");
 
   return (
     <Link
       href={`/patterns/${_id}`}
-      className="group rounded-2xl bg-card-bg shadow-card backdrop-blur-sm transition-all hover:shadow-card-hover"
+      className="group rounded-2xl border-[3px] border-clay-border bg-card-bg shadow-card transition-[transform,box-shadow] duration-200 ease-bounce hover:-translate-y-1 hover:shadow-card-hover"
     >
       <div className="relative aspect-square overflow-hidden rounded-t-2xl bg-gray-100">
         {thumbnailUrl ? (
@@ -56,10 +58,11 @@ export function GalleryCard({
               e.preventDefault();
               onFavorite(_id);
             }}
-            className="absolute right-2 top-2 rounded-full bg-white/80 p-1.5 backdrop-blur-sm transition-colors hover:bg-white"
+            aria-label={isFavorited ? t("favorited") : t("favorite")}
+            className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface shadow-button-secondary transition-[transform,box-shadow] active:translate-y-[3px] active:shadow-button-secondary-pressed"
           >
             <svg
-              className={`h-4 w-4 ${isFavorited ? "text-coral fill-coral" : "text-gray-400"}`}
+              className={`h-4 w-4 ${isFavorited ? "animate-pop text-coral fill-coral" : "text-gray-400"}`}
               viewBox="0 0 24 24"
               fill={isFavorited ? "currentColor" : "none"}
               stroke="currentColor"
@@ -72,13 +75,13 @@ export function GalleryCard({
       </div>
       <div className="p-3">
         <h3 className="truncate text-sm font-semibold text-text-primary">{name}</h3>
-        <p className="text-xs text-text-secondary">by {userName}</p>
+        <p className="text-xs text-text-secondary">{t("by", { userName })}</p>
         <div className="mt-2 flex items-center gap-2 text-xs text-text-muted">
           <span>{width}x{height}</span>
           <span>·</span>
-          <span>{colorCount} colors</span>
+          <span>{t("colorCount", { count: colorCount })}</span>
           <span>·</span>
-          <span>{favoriteCount} ♥</span>
+          <span>{t("favoriteCount", { count: favoriteCount })}</span>
         </div>
       </div>
     </Link>

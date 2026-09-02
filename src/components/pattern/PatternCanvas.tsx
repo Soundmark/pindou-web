@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useCanvas } from "@/hooks/useCanvas";
 import { BEAD_PALETTE } from "@/utils/beadColors";
+import { CANVAS_THEME } from "@/utils/canvasTheme";
 
 interface PatternCanvasProps {
   pixels: number[][];
@@ -65,13 +66,13 @@ export function PatternCanvas({
         ctx.globalAlpha = 1.0;
 
         // Grid lines
-        ctx.strokeStyle = "#e5e7eb";
+        ctx.strokeStyle = CANVAS_THEME.gridLine;
         ctx.lineWidth = 0.5;
         ctx.strokeRect(px, py, cellSize, cellSize);
 
         // Highlight border on matching cells
         if (isHighlighting && colorId === highlightedColorId) {
-          ctx.strokeStyle = "#ff8fa3";
+          ctx.strokeStyle = CANVAS_THEME.highlight;
           ctx.lineWidth = 2;
           ctx.strokeRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
         }
@@ -79,7 +80,7 @@ export function PatternCanvas({
         // Labels
         if (showLabels && cellSize >= 20 && color) {
           const luminance = getLuminance(color.hex);
-          ctx.fillStyle = luminance > 0.5 ? "#374151" : "#ffffff";
+          ctx.fillStyle = luminance > 0.5 ? CANVAS_THEME.labelDark : CANVAS_THEME.labelLight;
           ctx.font = `${Math.max(8, cellSize * 0.4)}px monospace`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -97,7 +98,7 @@ export function PatternCanvas({
   const ch = h * cellSize;
 
   return (
-    <div className="overflow-auto rounded-2xl shadow-card">
+    <div className="overflow-auto rounded-3xl border-[3px] border-clay-border shadow-card">
       <canvas
         ref={canvasRef}
         width={cw}

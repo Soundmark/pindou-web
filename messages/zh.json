@@ -1,0 +1,149 @@
+{
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "save": "保存",
+    "create": "创建",
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "close": "关闭",
+    "all": "全部",
+    "previous": "上一页",
+    "next": "下一页"
+  },
+  "header": {
+    "navCreate": "创建",
+    "navGallery": "画廊",
+    "navMyPatterns": "我的图案",
+    "openMenu": "打开菜单",
+    "switchTo": "EN",
+    "switchAria": "切换到 English"
+  },
+  "landing": {
+    "titleLead": "把照片变成",
+    "titleAccent": "拼豆图纸",
+    "subtitle": "上传任意图片，一键转换为拼豆图纸。支持 Perler、Hama 与 Artkal 拼豆。",
+    "getStarted": "开始创作",
+    "browseGallery": "浏览画廊"
+  },
+  "auth": {
+    "welcome": "欢迎来到 Pindou",
+    "subtitle": "登录以创建、保存和分享拼豆图纸",
+    "googleSignIn": "使用 Google 登录",
+    "terms": "登录即表示你同意我们的服务条款"
+  },
+  "gallery": {
+    "title": "画廊",
+    "subtitle": "浏览社区创作的拼豆图案",
+    "searchPlaceholder": "搜索图案…",
+    "sortLabel": "排序：",
+    "sortNewest": "最新",
+    "sortPopular": "最多收藏",
+    "sortColors": "颜色最多",
+    "emptyTitle": "未找到图案",
+    "emptyDescription": "试试调整搜索词或筛选条件",
+    "pageInfo": "{page} / {totalPages}"
+  },
+  "card": {
+    "by": "作者：{userName}",
+    "colorCount": "{count, plural, other {# 种颜色}}",
+    "favoriteCount": "{count} ♥",
+    "favorite": "收藏",
+    "favorited": "取消收藏"
+  },
+  "myPatterns": {
+    "title": "我的图案",
+    "signInTitle": "登录后查看你的图案",
+    "signInDescription": "登录后才能查看已保存的图案。",
+    "signInButton": "去登录",
+    "tabMine": "我的图案（{count}）",
+    "tabFavorites": "收藏（{count}）",
+    "emptyMineTitle": "还没有图案",
+    "emptyMineDescription": "创建你的第一个图案，它会显示在这里。",
+    "emptyFavTitle": "还没有收藏",
+    "emptyFavDescription": "去画廊逛逛，收藏喜欢的图案吧。",
+    "deleteConfirm": "确定删除这个图案吗？",
+    "deleteAria": "删除图案",
+    "unfavoriteAria": "取消收藏",
+    "fallbackMe": "我",
+    "fallbackPattern": "图案",
+    "fallbackUnknown": "未知"
+  },
+  "patternDetail": {
+    "notFoundTitle": "未找到图案",
+    "notFoundDescription": "该图案可能已被删除。",
+    "by": "作者：{userName}",
+    "colorCount": "{count, plural, other {# 种颜色}}",
+    "viewCount": "{count, plural, other {# 次浏览}}",
+    "favoriteCount": "{count, plural, other {# 次收藏}}",
+    "favorite": "♥ 收藏",
+    "downloadPng": "下载 PNG",
+    "editInCreator": "在创建器中编辑"
+  },
+  "create": {
+    "title": "创建图案",
+    "steps": {
+      "upload": "上传",
+      "crop": "裁剪",
+      "configure": "配置",
+      "result": "结果"
+    },
+    "generating": "正在生成图案…",
+    "beadCount": "{width} x {height} = {total} 颗珠子",
+    "colorCount": "{count} 种颜色",
+    "exportPng": "导出 PNG",
+    "exportZip": "导出 ZIP",
+    "startOver": "重新开始",
+    "noData": "没有图案数据，请返回重试。"
+  },
+  "upload": {
+    "previewAlt": "预览",
+    "replaceHint": "点击或拖拽以更换图片",
+    "dropHere": "把图片拖到这里",
+    "uploadPrompt": "上传图片",
+    "formats": "支持 PNG、JPG 或 WebP，最大 10MB"
+  },
+  "crop": {
+    "loadFailed": "图片加载失败，请返回重新上传",
+    "modeGroupAria": "拖动模式",
+    "modeBoth": "一起",
+    "modeCrop": "裁剪框",
+    "modeImage": "图片",
+    "zoomOut": "缩小",
+    "zoomIn": "放大",
+    "fit": "适应窗口",
+    "cropAndContinue": "裁剪并继续",
+    "help": "滚轮 / 双指缩放跟随当前模式：「一起」图片和裁剪框一起移动缩放，「裁剪框」只调整裁剪框，「图片」只移动缩放图片（裁剪框固定）；裁剪框可移出图片，空白处生成白色"
+  },
+  "grid": {
+    "gridWidth": "网格宽度：<b>{width}</b> 颗",
+    "gridHeight": "网格高度：<b>{height}</b> 颗",
+    "totalBeads": "共 <b>{count}</b> 颗珠子",
+    "generate": "生成图案"
+  },
+  "legend": {
+    "stats": "<b>{total}</b> 颗珠子 · <b>{colors}</b> 种颜色",
+    "highlightAria": "高亮 {name}",
+    "clearHighlightAria": "取消高亮 {name}"
+  },
+  "adminTags": {
+    "accessDeniedTitle": "无权访问",
+    "accessDeniedDescription": "登录后管理标签。",
+    "title": "标签管理",
+    "subtitle": "管理图案标签",
+    "newTag": "新建标签",
+    "emptyTitle": "还没有标签",
+    "emptyDescription": "创建第一个标签来整理图案。",
+    "createTitle": "创建标签",
+    "namePlaceholder": "标签名称",
+    "deleteConfirm": "确定删除这个标签吗？"
+  },
+  "metadata": {
+    "title": "Pindou - 拼豆图纸创作工具",
+    "description": "把你的照片变成拼豆图纸"
+  },
+  "notFound": {
+    "title": "页面不存在",
+    "backHome": "返回首页"
+  }
+}

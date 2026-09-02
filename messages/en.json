@@ -1,0 +1,149 @@
+{
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "close": "Close",
+    "all": "All",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "header": {
+    "navCreate": "Create",
+    "navGallery": "Gallery",
+    "navMyPatterns": "My Patterns",
+    "openMenu": "Open menu",
+    "switchTo": "中文",
+    "switchAria": "Switch to Chinese"
+  },
+  "landing": {
+    "titleLead": "Turn Photos into",
+    "titleAccent": " Bead Patterns",
+    "subtitle": "Upload any image and convert it into a fusebead pattern. Perfect for Perler, Hama, and Artkal beads.",
+    "getStarted": "Get Started",
+    "browseGallery": "Browse Gallery"
+  },
+  "auth": {
+    "welcome": "Welcome to Pindou",
+    "subtitle": "Sign in to create, save, and share bead patterns",
+    "googleSignIn": "Sign in with Google",
+    "terms": "By signing in, you agree to our Terms of Service"
+  },
+  "gallery": {
+    "title": "Gallery",
+    "subtitle": "Browse patterns created by the community",
+    "searchPlaceholder": "Search patterns...",
+    "sortLabel": "Sort:",
+    "sortNewest": "Newest",
+    "sortPopular": "Most Favorited",
+    "sortColors": "Most Colors",
+    "emptyTitle": "No patterns found",
+    "emptyDescription": "Try adjusting your search or filters",
+    "pageInfo": "{page} / {totalPages}"
+  },
+  "card": {
+    "by": "by {userName}",
+    "colorCount": "{count, plural, =1 {# color} other {# colors}}",
+    "favoriteCount": "{count} ♥",
+    "favorite": "Add to favorites",
+    "favorited": "Remove from favorites"
+  },
+  "myPatterns": {
+    "title": "My Patterns",
+    "signInTitle": "Sign in to view your patterns",
+    "signInDescription": "You need to sign in to access your saved patterns.",
+    "signInButton": "Sign In",
+    "tabMine": "My Patterns ({count})",
+    "tabFavorites": "Favorites ({count})",
+    "emptyMineTitle": "No patterns yet",
+    "emptyMineDescription": "Create your first pattern to see it here.",
+    "emptyFavTitle": "No favorites yet",
+    "emptyFavDescription": "Browse the gallery and favorite patterns you like.",
+    "deleteConfirm": "Delete this pattern?",
+    "deleteAria": "Delete pattern",
+    "unfavoriteAria": "Remove from favorites",
+    "fallbackMe": "Me",
+    "fallbackPattern": "Pattern",
+    "fallbackUnknown": "Unknown"
+  },
+  "patternDetail": {
+    "notFoundTitle": "Pattern not found",
+    "notFoundDescription": "This pattern may have been deleted.",
+    "by": "by {userName}",
+    "colorCount": "{count, plural, =1 {# color} other {# colors}}",
+    "viewCount": "{count, plural, =1 {# view} other {# views}}",
+    "favoriteCount": "{count, plural, =1 {# favorite} other {# favorites}}",
+    "favorite": "♥ Favorite",
+    "downloadPng": "Download PNG",
+    "editInCreator": "Edit in Creator"
+  },
+  "create": {
+    "title": "Create Pattern",
+    "steps": {
+      "upload": "Upload",
+      "crop": "Crop",
+      "configure": "Configure",
+      "result": "Result"
+    },
+    "generating": "Generating pattern...",
+    "beadCount": "{width} x {height} = {total} beads",
+    "colorCount": "{count} colors",
+    "exportPng": "Export PNG",
+    "exportZip": "Export ZIP",
+    "startOver": "Start Over",
+    "noData": "No pattern data. Please go back and try again."
+  },
+  "upload": {
+    "previewAlt": "Preview",
+    "replaceHint": "Click or drag to replace",
+    "dropHere": "Drop your image here",
+    "uploadPrompt": "Upload an image",
+    "formats": "PNG, JPG or WebP up to 10MB"
+  },
+  "crop": {
+    "loadFailed": "Image failed to load. Please go back and upload again.",
+    "modeGroupAria": "Drag mode",
+    "modeBoth": "Together",
+    "modeCrop": "Crop box",
+    "modeImage": "Image",
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in",
+    "fit": "Fit",
+    "cropAndContinue": "Crop & Continue",
+    "help": "Wheel / pinch zoom follows the current mode: Together moves and zooms the image and crop box as one, Crop box adjusts only the crop box, and Image moves and zooms the image only (the crop box stays fixed). The crop box can extend beyond the image — areas outside it render as white."
+  },
+  "grid": {
+    "gridWidth": "Grid Width: <b>{width}</b> beads",
+    "gridHeight": "Grid Height: <b>{height}</b> beads",
+    "totalBeads": "Total beads: <b>{count}</b>",
+    "generate": "Generate Pattern"
+  },
+  "legend": {
+    "stats": "<b>{total}</b> beads · <b>{colors}</b> colors",
+    "highlightAria": "Highlight {name}",
+    "clearHighlightAria": "Clear highlight for {name}"
+  },
+  "adminTags": {
+    "accessDeniedTitle": "Access Denied",
+    "accessDeniedDescription": "Sign in to manage tags.",
+    "title": "Tags",
+    "subtitle": "Manage pattern tags",
+    "newTag": "New Tag",
+    "emptyTitle": "No tags yet",
+    "emptyDescription": "Create your first tag to organize patterns.",
+    "createTitle": "Create Tag",
+    "namePlaceholder": "Tag name",
+    "deleteConfirm": "Delete this tag?"
+  },
+  "metadata": {
+    "title": "Pindou - Bead Pattern Creator",
+    "description": "Turn your photos into fusebead patterns"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "backHome": "Back to home"
+  }
+}

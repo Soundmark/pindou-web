@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useDiagrams, useTags, useFavorite, useUnfavorite } from "@/services/diagramService";
 import { GalleryCard } from "@/components/gallery/GalleryCard";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
@@ -8,6 +9,8 @@ import { useSession } from "next-auth/react";
 
 export default function GalleryPage() {
   const { data: session } = useSession();
+  const t = useTranslations("gallery");
+  const tc = useTranslations("common");
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState("");
   const [tag, setTag] = useState("");
@@ -47,9 +50,9 @@ export default function GalleryPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-primary">Gallery</h1>
+        <h1 className="text-2xl font-bold text-text-primary">{t("title")}</h1>
         <p className="mt-1 text-text-secondary">
-          Browse patterns created by the community
+          {t("subtitle")}
         </p>
       </div>
 
@@ -57,33 +60,35 @@ export default function GalleryPage() {
       <div className="mb-6 space-y-4">
         <input
           type="text"
-          placeholder="Search patterns..."
+          placeholder={t("searchPlaceholder")}
           value={keyword}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-full border-[3px] border-clay-border bg-surface px-5 py-3 text-sm text-text-primary shadow-inset outline-none transition-colors placeholder:text-text-muted focus:border-primary"
         />
 
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setTag("")}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                !tag ? "bg-primary text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"
+              className={`min-h-[44px] rounded-full border-[3px] px-4 py-2 text-xs font-semibold transition-[transform,box-shadow,background-color] active:translate-y-[3px] ${
+                !tag
+                  ? "border-primary-light bg-primary text-primary-ink shadow-button active:shadow-button-pressed"
+                  : "border-clay-border bg-surface text-text-secondary shadow-button-secondary hover:bg-gray-50 active:shadow-button-secondary-pressed"
               }`}
             >
-              All
+              {tc("all")}
             </button>
-            {tags.map((t: any) => (
+            {tags.map((tg: any) => (
               <button
-                key={t._id}
-                onClick={() => setTag(t.slug)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  tag === t.slug
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 text-text-secondary hover:bg-gray-200"
+                key={tg._id}
+                onClick={() => setTag(tg.slug)}
+                className={`min-h-[44px] rounded-full border-[3px] px-4 py-2 text-xs font-semibold transition-[transform,box-shadow,background-color] active:translate-y-[3px] ${
+                  tag === tg.slug
+                    ? "border-primary-light bg-primary text-primary-ink shadow-button active:shadow-button-pressed"
+                    : "border-clay-border bg-surface text-text-secondary shadow-button-secondary hover:bg-gray-50 active:shadow-button-secondary-pressed"
                 }`}
               >
-                {t.name}
+                {tg.name}
               </button>
             ))}
           </div>
@@ -91,11 +96,11 @@ export default function GalleryPage() {
 
         {/* Size filter */}
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-text-secondary">Sort:</span>
-          <select className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-text-primary outline-none">
-            <option value="newest">Newest</option>
-            <option value="popular">Most Favorited</option>
-            <option value="colors">Most Colors</option>
+          <span className="text-text-secondary">{t("sortLabel")}</span>
+          <select className="min-h-[44px] rounded-full border-[3px] border-clay-border bg-surface px-4 py-2 text-sm text-text-primary shadow-inset outline-none focus:border-primary">
+            <option value="newest">{t("sortNewest")}</option>
+            <option value="popular">{t("sortPopular")}</option>
+            <option value="colors">{t("sortColors")}</option>
           </select>
         </div>
       </div>
@@ -107,8 +112,8 @@ export default function GalleryPage() {
         </div>
       ) : diagrams.length === 0 ? (
         <EmptyState
-          title="No patterns found"
-          description="Try adjusting your search or filters"
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : (
         <>
@@ -137,19 +142,19 @@ export default function GalleryPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="rounded-full bg-gray-100 px-3 py-1.5 text-sm text-text-secondary disabled:opacity-50"
+                className="rounded-full border-[3px] border-clay-border bg-surface px-4 py-1.5 text-sm font-semibold text-text-secondary shadow-button-secondary transition-[transform,box-shadow] active:translate-y-1 active:shadow-button-secondary-pressed disabled:opacity-50"
               >
-                Previous
+                {tc("previous")}
               </button>
               <span className="px-3 text-sm text-text-secondary">
-                {page} / {pagination.totalPages}
+                {t("pageInfo", { page, totalPages: pagination.totalPages })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                 disabled={page === pagination.totalPages}
-                className="rounded-full bg-gray-100 px-3 py-1.5 text-sm text-text-secondary disabled:opacity-50"
+                className="rounded-full border-[3px] border-clay-border bg-surface px-4 py-1.5 text-sm font-semibold text-text-secondary shadow-button-secondary transition-[transform,box-shadow] active:translate-y-1 active:shadow-button-secondary-pressed disabled:opacity-50"
               >
-                Next
+                {tc("next")}
               </button>
             </div>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useCallback } from "react";
+import { CANVAS_THEME } from "@/utils/canvasTheme";
 
 export function useCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,7 +25,7 @@ export function useCanvas() {
         for (let x = 0; x < w; x++) {
           ctx.fillStyle = getColor(pixels[y][x]);
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-          ctx.strokeStyle = "#e5e7eb";
+          ctx.strokeStyle = CANVAS_THEME.gridLine;
           ctx.lineWidth = 0.5;
           ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
         }

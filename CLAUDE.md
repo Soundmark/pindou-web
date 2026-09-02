@@ -19,24 +19,29 @@
 ## 目录结构
 
 ```
+messages/                         # next-intl 中英文字典（en.json / zh.json）
 src/
+├── proxy.ts                      # next-intl 中间件（locale 路由重定向，排除 /api）
+├── i18n/                         # routing.ts / navigation.ts / request.ts
 ├── app/                          # Next.js App Router
-│   ├── layout.tsx                # 根布局（Provider 层级）
-│   ├── page.tsx                  # 首页着陆页
+│   ├── [locale]/                 # 本地化路由段（en/zh 前缀）
+│   │   ├── layout.tsx            # 根布局（html lang + i18n Provider + 认证）
+│   │   ├── page.tsx              # 首页着陆页
+│   │   ├── not-found.tsx         # 本地化 404
+│   │   ├── (auth)/login/         # 登录页
+│   │   ├── admin/tags/           # 管理员标签管理
+│   │   ├── create/               # 创建图案（4 步向导）
+│   │   ├── gallery/              # 公共画廊
+│   │   ├── my-patterns/          # 我的图案
+│   │   └── patterns/[id]/        # 图案详情
 │   ├── globals.css               # Tailwind v4 主题 + 全局样式
-│   ├── (auth)/login/             # 登录页
-│   ├── admin/tags/               # 管理员标签管理
-│   ├── api/                      # API 路由
-│   │   ├── auth/[...nextauth]/   # NextAuth 认证
-│   │   ├── diagrams/             # 图案 CRUD
-│   │   ├── tags/                 # 标签 CRUD
-│   │   └── upload/               # 上传占位（未完整实现）
-│   ├── create/                   # 创建图案（4 步向导）
-│   ├── gallery/                  # 公共画廊
-│   ├── my-patterns/              # 我的图案
-│   └── patterns/[id]/            # 图案详情
+│   └── api/                      # API 路由（不参与本地化）
+│       ├── auth/[...nextauth]/   # NextAuth 认证
+│       ├── diagrams/             # 图案 CRUD
+│       ├── tags/                 # 标签 CRUD
+│       └── upload/               # 上传占位（未完整实现）
 ├── components/
-│   ├── layout/                   # Header, AuthGuard
+│   ├── layout/                   # Header, AuthGuard, LanguageSwitcher
 │   ├── gallery/                  # GalleryCard
 │   ├── pattern/                  # PatternCanvas, ColorLegend
 │   ├── upload/                   # ImageUploader, CropPreview, GridConfig
@@ -48,6 +53,7 @@ src/
 ├── types/                        # bead.ts, diagram.ts, api.ts
 └── utils/                        # 核心算法
     ├── beadColors.ts             # 291 色 MARD 珠子调色板 + 颜色匹配
+    ├── canvasTheme.ts            # 屏幕内 canvas 绘制色板（与主题令牌手动同步）
     ├── colorQuantization.ts      # 颜色简化/合并
     ├── colorSystemMapping.json   # 多品牌颜色系统映射
     ├── imageProcessor.ts         # 图像处理管线（双线性缩放、颜色匹配）
@@ -87,6 +93,62 @@ src/
 - 全局 CSS 变量定义在 `src/app/globals.css` 中
 - 组件使用 `interface` 定义 Props 类型
 - 导出使用具名导出（`export function ComponentName`）
+
+## 国际化（next-intl）
+
+全站支持中英文（`/en` `/zh` 前缀路由），**新增任何面向用户的字符串必须走字典**：
+
+- 字典文件：`messages/en.json` + `messages/zh.json`，命名空间按页面/组件划分（`common`、`header`、`crop`…）
+- 页面组件：client 用 `useTranslations('ns')`；server 组件（如 `[locale]/page.tsx`、layout）用 `await getTranslations('ns')`，且须先 `setRequestLocale(locale)`
+- 带插值的键用 `{param}`；英文复数用 ICU plural，中文只用 `other`；需要给数字加样式的用 `t.rich(..., { b: (chunks) => <span>…</span> })`
+- **导航必须用 `@/i18n/navigation` 的 `Link` / `useRouter` / `usePathname`**（自动加 locale 前缀；i18n 的 usePathname 返回无前缀路径）；不要 import `next/link` / `next/navigation`
+- 不要翻译：珠子色号（A01…）、品牌名、canvas 绘制文字、sort 选项 value（`newest/popular/colors`）、API 错误文案（API 路由不参与本地化）
+- 语言切换器 `src/components/layout/LanguageSwitcher.tsx` 已内置在 Header，无需重复实现
+- 新增语言：更新 `src/i18n/routing.ts` 的 locales、`messages/<lang>.json`、`[locale]/layout.tsx` 的 generateStaticParams
+
+## 视觉设计系统（Playful + Claymorphism + Soft UI + 3D Toy）
+
+全站视觉是黏土/玩具风：粗边框（3px）、大圆角、内外双阴影、粉彩色、弹性动效。**新增任何 UI 必须遵循本节规范。**
+
+### 单一事实来源
+
+- 所有颜色/阴影/圆角/动画只从 `src/app/globals.css` 的 `@theme inline` 令牌取值，**禁止在组件里裸写十六进制色值或 box-shadow**
+- 优先复用 `src/components/ui/` 原语（Button/Card/Modal/Spinner），它们已携带完整黏土语言
+
+### 既定配方（手写样式时照抄）
+
+- 主按钮/激活胶囊：`border-[3px] border-primary-light bg-primary text-primary-ink shadow-button hover:bg-primary-dark active:translate-y-1 active:shadow-button-pressed`
+- 次级按钮/未激活胶囊：`border-[3px] border-clay-border bg-surface text-text-secondary shadow-button-secondary active:translate-y-1 active:shadow-button-secondary-pressed`
+- 卡片：`rounded-2xl border-[3px] border-clay-border bg-card-bg shadow-card`
+- 输入框（凹陷感）：`rounded-full border-[3px] border-clay-border bg-surface shadow-inset focus:border-primary`
+- 圆形图标钮：`flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface shadow-button-secondary active:translate-y-[3px]`
+- 轻量按压件：挂 `.clay-press` 类
+
+### 对比度硬规则（违反 = 返工）
+
+1. 粉底（`bg-primary`）上**禁止白字**，文字一律用 `text-primary-ink`
+2. 浅底上的粉色文字用 `text-primary-strong`，禁止裸 `text-primary`（它是填充色，作文字对比度仅 ~2:1）
+3. `text-primary-dark` 只作 hover 填充色，禁止作文字色
+
+### 动效
+
+- 只用 `@theme` 中已定义的动画令牌：`animate-pop-in / fade-in / pop / rise-in / float / wobble`，缓动用 `ease-bounce`；需要新动画时先在 `@theme` 定义再使用
+- 全局 `prefers-reduced-motion` 规则自动覆盖所有动画，新增动画无需单独处理
+- 触控目标 ≥44px（`h-11` / `min-h-11`）
+
+### Canvas 与导出
+
+- 屏幕 canvas 绘制颜色一律从 `src/utils/canvasTheme.ts` 的 `CANVAS_THEME` 取；**修改 `globals.css` 主题色时必须手动同步该文件**（全项目唯一的同步负担点）
+- `src/utils/patternRenderer.ts` 是下载产物（PNG 导出），刻意保持中性打印风格，**不要**改成黏土风
+
+### 新增 UI 后的 grep 审计
+
+```bash
+# 全部应为 0 命中（唯一例外：patternRenderer.ts 的中性打印配色）
+grep -rn "backdrop-blur" src/
+grep -rn "text-white" src/components src/app
+grep -rnE '#ff8fa3|#e5e7eb|#e9e9e9' src/ --include="*.tsx"
+```
 
 ## 颜色系统
 

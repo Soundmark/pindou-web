@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { CropPreview } from "@/components/upload/CropPreview";
 import { GridConfig } from "@/components/upload/GridConfig";
@@ -14,6 +15,7 @@ import { BEAD_PALETTE } from "@/utils/beadColors";
 type Step = "upload" | "crop" | "configure" | "result";
 
 export default function CreatePage() {
+  const t = useTranslations("create");
   const [step, setStep] = useState<Step>("upload");
   const [imageUrl, setImageUrl] = useState<string>("");
   const [croppedImageDataUrl, setCroppedImageDataUrl] = useState<string>("");
@@ -114,7 +116,7 @@ export default function CreatePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-8 text-center text-2xl font-bold text-text-primary">
-        Create Pattern
+        {t("title")}
       </h1>
 
       {/* Step Indicator */}
@@ -122,30 +124,24 @@ export default function CreatePage() {
         {(["upload", "crop", "configure", "result"] as const).map((s, i) => (
           <div key={s} className="flex shrink-0 items-center gap-2">
             <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full border-[3px] font-heading text-sm font-semibold ${
                 step === s
-                  ? "bg-primary text-white"
+                  ? "border-primary-light bg-primary text-primary-ink shadow-button"
                   : ["upload", "crop", "configure"].indexOf(step) >= i
-                  ? "bg-primary/20 text-primary"
-                  : "bg-gray-100 text-gray-400"
+                  ? "border-primary-light bg-primary/25 text-primary-strong"
+                  : "border-clay-border bg-surface text-gray-400"
               }`}
             >
               {i + 1}
             </div>
             <span
               className={`hidden text-sm sm:inline ${
-                step === s ? "font-medium text-primary" : "text-gray-400"
+                step === s ? "font-semibold text-primary-strong" : "text-gray-400"
               }`}
             >
-              {s === "upload"
-                ? "Upload"
-                : s === "crop"
-                ? "Crop"
-                : s === "configure"
-                ? "Configure"
-                : "Result"}
+              {t(`steps.${s}`)}
             </span>
-            {i < 3 && <div className="h-px w-8 bg-gray-200" />}
+            {i < 3 && <div className="h-[3px] w-8 rounded-full bg-clay-border sm:w-10" />}
           </div>
         ))}
       </div>
@@ -175,7 +171,7 @@ export default function CreatePage() {
           {isProcessing ? (
             <div className="flex flex-col items-center gap-4 py-16">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/30 border-t-primary" />
-              <p className="text-text-secondary">Generating pattern...</p>
+              <p className="text-text-secondary">{t("generating")}</p>
             </div>
           ) : pixels.length > 0 ? (
             <>
@@ -193,27 +189,31 @@ export default function CreatePage() {
                 onHighlightColor={setHighlightedColor}
               />
               <div className="flex flex-wrap items-center justify-center gap-4">
-                <div className="rounded-full bg-primary/10 px-4 py-2 text-sm text-primary">
-                  {gridWidth} x {gridHeight} = {gridWidth * gridHeight} beads
+                <div className="rounded-full border-[3px] border-primary-light bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary-strong">
+                  {t("beadCount", {
+                    width: gridWidth,
+                    height: gridHeight,
+                    total: gridWidth * gridHeight,
+                  })}
                 </div>
-                <div className="rounded-full bg-green-candy/20 px-4 py-2 text-sm text-green-700">
-                  {colorCount} colors
+                <div className="rounded-full border-[3px] border-green-candy bg-green-candy/25 px-5 py-2.5 text-sm font-semibold text-gray-700">
+                  {t("colorCount", { count: colorCount })}
                 </div>
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <Button variant="secondary" onClick={handleExportPng}>
-                  Export PNG
+                  {t("exportPng")}
                 </Button>
                 <Button variant="secondary" onClick={handleExportZip}>
-                  Export ZIP
+                  {t("exportZip")}
                 </Button>
                 <Button variant="ghost" onClick={handleReset}>
-                  Start Over
+                  {t("startOver")}
                 </Button>
               </div>
             </>
           ) : (
-            <p className="text-text-secondary">No pattern data. Please go back and try again.</p>
+            <p className="text-text-secondary">{t("noData")}</p>
           )}
         </div>
       )}

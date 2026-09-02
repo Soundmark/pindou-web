@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
+import { CANVAS_THEME } from "@/utils/canvasTheme";
 
 interface CropPreviewProps {
   imageUrl: string;
@@ -155,6 +157,8 @@ function touchMid(a: React.Touch, b: React.Touch): { x: number; y: number } {
 }
 
 export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
+  const t = useTranslations("crop");
+  const tc = useTranslations("common");
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -247,7 +251,7 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
     const checker = 12;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, stage.w, stage.h);
-    ctx.fillStyle = "#e9e9e9";
+    ctx.fillStyle = CANVAS_THEME.checkerDark;
     for (let y = 0; y * checker < stage.h; y++) {
       for (let x = 0; x * checker < stage.w; x++) {
         if ((x + y) % 2 === 0) ctx.fillRect(x * checker, y * checker, checker, checker);
@@ -271,12 +275,12 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
     const sy = crop.y * view.scale + view.offsetY;
     const sw = crop.w * view.scale;
     const sh = crop.h * view.scale;
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillStyle = CANVAS_THEME.cropMask;
     ctx.fillRect(0, 0, stage.w, Math.max(0, sy));
     ctx.fillRect(0, sy + sh, stage.w, Math.max(0, stage.h - sy - sh));
     ctx.fillRect(0, Math.max(0, sy), Math.max(0, sx), Math.min(sh, stage.h - Math.max(0, sy)));
     ctx.fillRect(sx + sw, Math.max(0, sy), Math.max(0, stage.w - sx - sw), Math.min(sh, stage.h - Math.max(0, sy)));
-    ctx.strokeStyle = "#ff8fa3";
+    ctx.strokeStyle = CANVAS_THEME.cropOutline;
     ctx.lineWidth = 2;
     ctx.strokeRect(sx, sy, sw, sh);
   }, [stage, imgDims, view, crop, viewReady]);
@@ -610,9 +614,9 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
   if (errorUrl === imageUrl) {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
-        <p className="text-sm text-text-secondary">图片加载失败，请返回重新上传</p>
+        <p className="text-sm text-text-secondary">{t("loadFailed")}</p>
         <Button variant="secondary" onClick={onBack}>
-          Back
+          {tc("back")}
         </Button>
       </div>
     );
@@ -635,7 +639,7 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
     <div className="flex w-full flex-col items-center gap-4">
       <div
         ref={containerRef}
-        className="relative aspect-4/3 w-full max-w-120 overflow-hidden rounded-2xl shadow-card bg-white"
+        className="relative aspect-4/3 w-full max-w-120 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
       >
         {ready ? (
           <canvas
@@ -660,15 +664,15 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
       {ready && (
         <>
           <div
-            className="flex items-center gap-1 rounded-full border border-gray-200 bg-surface p-1"
+            className="flex items-center gap-1 rounded-full border-[3px] border-clay-border bg-gray-100 p-1 shadow-inset"
             role="group"
-            aria-label="拖动模式"
+            aria-label={t("modeGroupAria")}
           >
             {(
               [
-                { key: "both", label: "一起" },
-                { key: "crop", label: "裁剪框" },
-                { key: "image", label: "图片" },
+                { key: "both", label: t("modeBoth") },
+                { key: "crop", label: t("modeCrop") },
+                { key: "image", label: t("modeImage") },
               ] as { key: InteractionMode; label: string }[]
             ).map((opt) => (
               <button
@@ -676,10 +680,10 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
                 type="button"
                 onClick={() => setInteractionMode(opt.key)}
                 aria-pressed={interactionMode === opt.key}
-                className={`h-11 rounded-full px-4 text-sm font-medium transition-colors ${
+                className={`h-11 rounded-full px-4 text-sm transition-colors ${
                   interactionMode === opt.key
-                    ? "bg-primary text-white"
-                    : "text-text-secondary hover:bg-gray-100"
+                    ? "bg-primary font-bold text-primary-ink shadow-button"
+                    : "text-text-secondary hover:text-text-primary"
                 }`}
               >
                 {opt.label}
@@ -691,8 +695,8 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
             <button
               type="button"
               onClick={() => zoomBy(1 / ZOOM_STEP)}
-              aria-label="缩小"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-surface text-lg text-text-secondary transition-colors hover:bg-gray-100"
+              aria-label={t("zoomOut")}
+              className="flex h-11 w-11 clay-press items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-lg text-text-secondary shadow-button-secondary active:shadow-button-secondary-pressed"
             >
               −
             </button>
@@ -702,25 +706,25 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
             <button
               type="button"
               onClick={() => zoomBy(ZOOM_STEP)}
-              aria-label="放大"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-surface text-lg text-text-secondary transition-colors hover:bg-gray-100"
+              aria-label={t("zoomIn")}
+              className="flex h-11 w-11 clay-press items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-lg text-text-secondary shadow-button-secondary active:shadow-button-secondary-pressed"
             >
               +
             </button>
             <Button variant="ghost" size="md" className="h-11" onClick={handleFit}>
-              Fit
+              {t("fit")}
             </Button>
           </div>
 
           <p className="text-center text-sm text-text-secondary">
-            滚轮 / 双指缩放跟随当前模式：「一起」图片和裁剪框一起移动缩放，「裁剪框」只调整裁剪框，「图片」只移动缩放图片（裁剪框固定）；裁剪框可移出图片，空白处生成白色
+            {t("help")}
           </p>
 
           <div className="flex gap-3">
             <Button variant="secondary" onClick={onBack}>
-              Back
+              {tc("back")}
             </Button>
-            <Button onClick={handleConfirm}>Crop &amp; Continue</Button>
+            <Button onClick={handleConfirm}>{t("cropAndContinue")}</Button>
           </div>
         </>
       )}

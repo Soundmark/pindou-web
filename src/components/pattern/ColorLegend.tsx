@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { BEAD_PALETTE } from "@/utils/beadColors";
 
 interface ColorLegendProps {
@@ -14,6 +15,7 @@ export function ColorLegend({
   highlightedColorId,
   onHighlightColor,
 }: ColorLegendProps) {
+  const t = useTranslations("legend");
   const stats = useMemo(() => {
     const countMap = new Map<number, number>();
     let total = 0;
@@ -36,15 +38,18 @@ export function ColorLegend({
 
   if (stats.entries.length === 0) return null;
 
+  const bold = (chunks: React.ReactNode) => (
+    <span className="font-semibold text-text-primary">{chunks}</span>
+  );
+
   return (
     <div className="w-full">
       <p className="mb-3 text-sm text-text-secondary">
-        <span className="font-semibold text-text-primary">{stats.total}</span>{" "}
-        beads ·{" "}
-        <span className="font-semibold text-text-primary">
-          {stats.entries.length}
-        </span>{" "}
-        colors
+        {t.rich("stats", {
+          total: stats.total,
+          colors: stats.entries.length,
+          b: bold,
+        })}
       </p>
       <div className="flex flex-wrap gap-2">
         {stats.entries.map(({ colorId, count, color }) => {
@@ -55,15 +60,15 @@ export function ColorLegend({
               onClick={() =>
                 onHighlightColor(isActive ? null : colorId)
               }
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all min-h-[44px] ${
+              className={`flex clay-press items-center gap-1.5 rounded-full border-[3px] px-3 py-1.5 text-sm min-h-[44px] ${
                 isActive
-                  ? "bg-primary/15 ring-2 ring-primary shadow-sm scale-105"
-                  : "bg-white hover:bg-gray-50 shadow-sm"
+                  ? "border-primary/30 bg-primary/15 shadow-sm scale-105"
+                  : "border-clay-border bg-surface shadow-button-secondary"
               }`}
               aria-label={
                 isActive
-                  ? `Clear highlight for ${color?.name}`
-                  : `Highlight ${color?.name}`
+                  ? t("clearHighlightAria", { name: color?.name })
+                  : t("highlightAria", { name: color?.name })
               }
             >
               <span
@@ -72,7 +77,7 @@ export function ColorLegend({
               />
               <span
                 className={`font-mono text-xs font-medium ${
-                  isActive ? "text-primary" : "text-text-primary"
+                  isActive ? "text-primary-strong" : "text-text-primary"
                 }`}
               >
                 {color?.id}

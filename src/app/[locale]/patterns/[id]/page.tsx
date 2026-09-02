@@ -1,13 +1,14 @@
 "use client";
 
 import { use, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useDiagram } from "@/services/diagramService";
 import { PatternCanvas } from "@/components/pattern/PatternCanvas";
 import { ColorLegend } from "@/components/pattern/ColorLegend";
 import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export default function PatternDetailPage({
   params,
@@ -16,6 +17,7 @@ export default function PatternDetailPage({
 }) {
   const { id } = use(params);
   const { data: session } = useSession();
+  const t = useTranslations("patternDetail");
   const { data, isLoading, error } = useDiagram(id);
   const [highlightedColor, setHighlightedColor] = useState<number | null>(null);
 
@@ -30,7 +32,7 @@ export default function PatternDetailPage({
   if (error || !data?.data) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16">
-        <EmptyState title="Pattern not found" description="This pattern may have been deleted." />
+        <EmptyState title={t("notFoundTitle")} description={t("notFoundDescription")} />
       </div>
     );
   }
@@ -49,15 +51,15 @@ export default function PatternDetailPage({
           <p className="mt-1 text-text-secondary">{diagram.description}</p>
         )}
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
-          <span>by {diagram.userName}</span>
+          <span>{t("by", { userName: diagram.userName })}</span>
           <span>·</span>
           <span>{diagram.width}x{diagram.height}</span>
           <span>·</span>
-          <span>{diagram.colorCount} colors</span>
+          <span>{t("colorCount", { count: diagram.colorCount })}</span>
           <span>·</span>
-          <span>{diagram.viewCount} views</span>
+          <span>{t("viewCount", { count: diagram.viewCount })}</span>
           <span>·</span>
-          <span>{diagram.favoriteCount} favorites</span>
+          <span>{t("favoriteCount", { count: diagram.favoriteCount })}</span>
         </div>
         {diagram.tags?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -65,7 +67,7 @@ export default function PatternDetailPage({
               <Link
                 key={tag}
                 href={`/gallery?tag=${tag}`}
-                className="rounded-full bg-primary/10 px-3 py-0.5 text-xs text-primary"
+                className="rounded-full border-2 border-primary/25 bg-primary/15 px-4 py-1.5 text-xs font-semibold text-primary-strong hover:bg-primary/25"
               >
                 {tag}
               </Link>
@@ -107,7 +109,7 @@ export default function PatternDetailPage({
               fetch(`/api/diagrams/favorites/${id}`, { method: "POST" });
             }}
           >
-            ♥ Favorite
+            {t("favorite")}
           </Button>
         )}
         <Button
@@ -119,10 +121,10 @@ export default function PatternDetailPage({
             a.click();
           }}
         >
-          Download PNG
+          {t("downloadPng")}
         </Button>
         <Link href={`/create?load=${id}`}>
-          <Button variant="ghost">Edit in Creator</Button>
+          <Button variant="ghost">{t("editInCreator")}</Button>
         </Link>
       </div>
     </div>
