@@ -19,13 +19,12 @@ if (proxyUrl) {
   try {
     const projectRequire = createRequire(path.join(process.cwd(), "package.json"));
     const nextAuthRequire = createRequire(projectRequire.resolve("next-auth"));
-    const { custom: openidCustom } = nextAuthRequire(
-      "openid-client"
-    ) as typeof import("openid-client");
-    (openidCustom.setHttpOptionsDefaults as unknown as (
-      props: string[],
-      options: object
-    ) => void)([], { agent: new HttpsProxyAgent(proxyUrl) });
+    // openid-client 是 next-auth 的传递依赖（未直接声明），这里只用运行时对象，
+    // 用结构化类型描述而非 import 类型，避免 Vercel 构建时解析不到类型声明
+    const { custom: openidCustom } = nextAuthRequire("openid-client") as {
+      custom: { setHttpOptionsDefaults: (props: string[], options: object) => void };
+    };
+    openidCustom.setHttpOptionsDefaults([], { agent: new HttpsProxyAgent(proxyUrl) });
     https.globalAgent = new HttpsProxyAgent(proxyUrl);
   } catch {
     // 模块解析失败时保持直连（如线上环境）
