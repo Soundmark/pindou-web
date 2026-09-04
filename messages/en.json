@@ -94,7 +94,23 @@
     "exportPng": "Export PNG",
     "exportZip": "Export ZIP",
     "startOver": "Start Over",
-    "noData": "No pattern data. Please go back and try again."
+    "noData": "No pattern data. Please go back and try again.",
+    "publish": "Publish to Gallery",
+    "signInToPublish": "Sign in & Publish",
+    "publishFailed": "Publish failed. Please try again."
+  },
+  "publish": {
+    "title": "Publish to Gallery",
+    "name": "Name",
+    "namePlaceholder": "Name your pattern",
+    "description": "Description",
+    "descriptionPlaceholder": "Tell people about this pattern (optional)",
+    "tags": "Tags",
+    "isPublic": "Public",
+    "isPublicHint": "Public patterns are visible to everyone in the gallery",
+    "cancel": "Cancel",
+    "submit": "Publish",
+    "submitting": "Publishing..."
   },
   "upload": {
     "previewAlt": "Preview",

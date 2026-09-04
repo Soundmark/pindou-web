@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
     const diagram = await Diagram.create({
       ...data,
       userId,
-      userName: (session.user as any)?.name || "Anonymous",
-      userAvatar: (session.user as any)?.image,
+      userName: session?.user?.name || "Anonymous",
+      userAvatar: session?.user?.image,
     });
 
     if (data.tags?.length) {
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
     return created(diagram);
   } catch (error: any) {
     if (error.name === "ZodError") return badRequest(error.errors);
+    console.error("[diagrams POST] failed:", error);
     return badRequest("Internal server error");
   }
 }

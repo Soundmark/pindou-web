@@ -43,6 +43,7 @@ export function GalleryCard({
           <img
             src={thumbnailUrl}
             alt={name}
+            loading="lazy"
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
         ) : (

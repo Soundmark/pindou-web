@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "@/i18n/navigation";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { CropPreview } from "@/components/upload/CropPreview";
 import { GridConfig } from "@/components/upload/GridConfig";
 import { PatternCanvas } from "@/components/pattern/PatternCanvas";
 import { ColorLegend } from "@/components/pattern/ColorLegend";
+import { PublishForm, type PublishPayload } from "@/components/upload/PublishForm";
 import { Button } from "@/components/ui/Button";
 import { useImageProcessor } from "@/hooks/useImageProcessor";
+import { useCreateDiagram } from "@/services/diagramService";
 import { buildPatternZip } from "@/utils/patternZip";
+import { dataUrlToBlob, createPatternThumbnailBlob, uploadImageToR2 } from "@/utils/imageExport";
 import { BEAD_PALETTE } from "@/utils/beadColors";
 
 type Step = "upload" | "crop" | "configure" | "result";
@@ -23,6 +28,14 @@ export default function CreatePage() {
   const [gridHeight, setGridHeight] = useState(32);
 
   const [highlightedColor, setHighlightedColor] = useState<number | null>(null);
+
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  const { status } = useSession();
+  const router = useRouter();
+  const createDiagram = useCreateDiagram();
 
   const { pixels, colorCount, isProcessing, processImage, getColorById, reset } =
     useImageProcessor();
@@ -111,6 +124,55 @@ export default function CreatePage() {
     setImageUrl("");
     setCroppedImageDataUrl("");
     setHighlightedColor(null);
+    setPublishOpen(false);
+    setPublishError(null);
+  };
+
+  const handlePublishClick = async () => {
+    if (status === "authenticated") {
+      setPublishOpen(true);
+      return;
+    }
+    // Popup login flow to preserve in-progress pattern (no full page redirect)
+    const result = await signIn("google", { redirect: false });
+    if (result && !result.error) {
+      setPublishOpen(true);
+    }
+  };
+
+  const handlePublish = async (payload: PublishPayload) => {
+    if (pixels.length === 0 || !croppedImageDataUrl) return;
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const fullBlob = await dataUrlToBlob(croppedImageDataUrl);
+      const imageUrl = await uploadImageToR2(fullBlob, "image/png", "pattern.png");
+      const thumbnailBlob = await createPatternThumbnailBlob(pixels);
+      const thumbnailUrl = await uploadImageToR2(thumbnailBlob, "image/png", "pattern-thumbnail.png");
+
+      const res = await createDiagram.mutateAsync({
+        name: payload.name,
+        description: payload.description,
+        imageUrl,
+        thumbnailUrl,
+        width: gridWidth,
+        height: gridHeight,
+        pixels,
+        brand: "MARD",
+        tags: payload.tags,
+        colorCount,
+        isPublic: payload.isPublic,
+      });
+
+      const id = res?.data?._id;
+      if (!id) throw new Error("Missing diagram id");
+      setPublishOpen(false);
+      router.push(`/patterns/${id}`);
+    } catch {
+      setPublishError(t("publishFailed"));
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -201,6 +263,9 @@ export default function CreatePage() {
                 </div>
               </div>
               <div className="flex flex-wrap justify-center gap-3">
+                <Button onClick={handlePublishClick} disabled={publishing}>
+                  {status === "authenticated" ? t("publish") : t("signInToPublish")}
+                </Button>
                 <Button variant="secondary" onClick={handleExportPng}>
                   {t("exportPng")}
                 </Button>
@@ -211,6 +276,13 @@ export default function CreatePage() {
                   {t("startOver")}
                 </Button>
               </div>
+              <PublishForm
+                open={publishOpen}
+                submitting={publishing}
+                error={publishError}
+                onClose={() => setPublishOpen(false)}
+                onSubmit={handlePublish}
+              />
             </>
           ) : (
             <p className="text-text-secondary">{t("noData")}</p>

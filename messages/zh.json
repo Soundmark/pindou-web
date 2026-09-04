@@ -94,7 +94,23 @@
     "exportPng": "导出 PNG",
     "exportZip": "导出 ZIP",
     "startOver": "重新开始",
-    "noData": "没有图案数据，请返回重试。"
+    "noData": "没有图案数据，请返回重试。",
+    "publish": "发布到画廊",
+    "signInToPublish": "登录并发布",
+    "publishFailed": "发布失败，请重试。"
+  },
+  "publish": {
+    "title": "发布到画廊",
+    "name": "名称",
+    "namePlaceholder": "给图案起个名字",
+    "description": "描述",
+    "descriptionPlaceholder": "介绍一下这个图案（选填）",
+    "tags": "标签",
+    "isPublic": "公开",
+    "isPublicHint": "公开后所有人都能在画廊看到这个图案",
+    "cancel": "取消",
+    "submit": "发布",
+    "submitting": "发布中…"
   },
   "upload": {
     "previewAlt": "预览",
