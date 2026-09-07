@@ -1,5 +1,6 @@
 import type { BeadColor } from "./beadColors";
 import { BEAD_PALETTE } from "./beadColors";
+import { CANVAS_THEME } from "./canvasTheme";
 import colorSystemMapping from "./colorSystemMapping.json";
 
 export type ColorSystemType = "MARD" | "COCO" | "漫漫" | "盼盼" | "咪小窝";
@@ -142,24 +143,65 @@ export function drawPattern(options: DrawOptions): void {
   }
 }
 
+/**
+ * 把像素矩阵渲染成静态 PNG 画布（中性打印风格）：
+ * 白底 + BEAD_PALETTE 色块 + 细网格线 + 每 5 格粗网格线（对照拼豆板用）。
+ * 供详情页与创建页的"导出 PNG"共用。
+ */
 export function renderPatternToCanvas(
   pixels: number[][],
-  beadColors: BeadColor[],
   canvas: HTMLCanvasElement,
   cellSize: number = 20
 ): void {
   const h = pixels.length;
-  const w = pixels[0].length;
+  const w = pixels[0]?.length ?? 0;
   canvas.width = w * cellSize;
   canvas.height = h * cellSize;
   const ctx = canvas.getContext("2d")!;
 
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   for (let y = 0; y < h; y++) {
+    const row = pixels[y];
+    if (!row) continue;
     for (let x = 0; x < w; x++) {
-      const colorId = pixels[y][x];
-      const color = colorId >= 0 ? beadColors[colorId] : undefined;
-      ctx.fillStyle = color ? color.hex : "#ffffff";
+      const colorId = row[x];
+      if (colorId < 0) continue; // 空格子留白
+      ctx.fillStyle = BEAD_PALETTE[colorId]?.hex ?? "#ffffff";
       ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
     }
   }
+
+  // 细网格线（含外边线）
+  ctx.strokeStyle = CANVAS_THEME.gridLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x++) {
+    const px = Math.round(x * cellSize) + 0.5;
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, h * cellSize);
+  }
+  for (let y = 0; y <= h; y++) {
+    const py = Math.round(y * cellSize) + 0.5;
+    ctx.moveTo(0, py);
+    ctx.lineTo(w * cellSize, py);
+  }
+  ctx.stroke();
+
+  // 每 5 格粗网格线（含 0 起点），对应实体拼豆板的定位筋
+  ctx.strokeStyle = CANVAS_THEME.gridLineStrong;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 5) {
+    const px = Math.round(x * cellSize) + 0.5;
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, h * cellSize);
+  }
+  for (let y = 0; y <= h; y += 5) {
+    const py = Math.round(y * cellSize) + 0.5;
+    ctx.moveTo(0, py);
+    ctx.lineTo(w * cellSize, py);
+  }
+  ctx.stroke();
 }

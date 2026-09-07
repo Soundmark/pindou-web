@@ -14,7 +14,7 @@ import { PublishForm, type PublishPayload } from "@/components/upload/PublishFor
 import { Button } from "@/components/ui/Button";
 import { useCreateDiagram } from "@/services/diagramService";
 import { buildPatternZip } from "@/utils/patternZip";
-import { createPatternThumbnailBlob, dataUrlToBlob, uploadImageToR2 } from "@/utils/imageExport";
+import { createPatternThumbnailBlob, dataUrlToBlob, downloadPatternPng, uploadImageToR2 } from "@/utils/imageExport";
 import { convertImageToGrid, loadImageData } from "@/utils/imageToGrid";
 import { BEAD_PALETTE } from "@/utils/beadColors";
 import { countBeads, countColors, createEmptyGrid } from "@/utils/pixelGrid";
@@ -119,29 +119,9 @@ export default function CreatePage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPng = () => {
+  const handleExportPng = async () => {
     if (pixels.length === 0 || isProcessing) return;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d")!;
-    const cellSize = 20;
-    const h = pixels.length;
-    const w = pixels[0].length;
-    canvas.width = w * cellSize;
-    canvas.height = h * cellSize;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const colorId = pixels[y][x];
-        if (colorId < 0) continue; // 空格子保持白底
-        ctx.fillStyle = BEAD_PALETTE[colorId]?.hex ?? "#ffffff";
-        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-      }
-    }
-    const link = document.createElement("a");
-    link.download = `pattern-${Date.now()}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
+    await downloadPatternPng(pixels);
   };
 
   const handleReset = () => {

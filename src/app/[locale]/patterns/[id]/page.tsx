@@ -7,6 +7,7 @@ import { PatternCanvas } from "@/components/pattern/PatternCanvas";
 import { ColorLegend } from "@/components/pattern/ColorLegend";
 import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
+import { downloadPatternPng } from "@/utils/imageExport";
 import { useSession } from "next-auth/react";
 import { Link } from "@/i18n/navigation";
 
@@ -79,11 +80,7 @@ export default function PatternDetailPage({
       {/* Pattern */}
       {pixels.length > 0 ? (
         <div className="flex flex-col items-center gap-6">
-          <PatternCanvas
-            pixels={pixels}
-            cellSize={12}
-            highlightedColorId={highlightedColor}
-          />
+          <PatternCanvas pixels={pixels} highlightedColorId={highlightedColor} />
           <ColorLegend
             pixels={pixels}
             highlightedColorId={highlightedColor}
@@ -115,10 +112,7 @@ export default function PatternDetailPage({
         <Button
           variant="secondary"
           onClick={() => {
-            const a = document.createElement("a");
-            a.href = `/api/diagrams/${id}/export/png`;
-            a.download = `${diagram.name}.png`;
-            a.click();
+            if (pixels.length > 0) void downloadPatternPng(pixels, `${diagram.name}.png`);
           }}
         >
           {t("downloadPng")}

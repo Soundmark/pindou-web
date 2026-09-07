@@ -5,6 +5,7 @@
  */
 export const CANVAS_THEME = {
   gridLine: "#e2ccc7", // 暖灰网格线（对应 --color-gray-300）
+  gridLineStrong: "#ab948e", // 每5格粗网格线（对应 --color-gray-400），便于对照拼豆板
   highlight: "#c73a58", // 选中高亮 = --color-primary-strong
   labelDark: "#5b423d", // 单元格编号文字 = --color-gray-700
   labelLight: "#ffffff", // 深色格子上的编号文字

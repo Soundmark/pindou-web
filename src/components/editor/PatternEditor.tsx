@@ -35,6 +35,7 @@ const ZOOM_STEP = 1.25;
 const HISTORY_LIMIT = 50;
 const RECENT_LIMIT = 8;
 const GRID_LINE_MIN_PX = 4; // 跳过网格线的最小格子屏幕尺寸
+const GRID_LINE_BOLD_MIN_PX = 3; // 每5格粗线的最小格子屏幕尺寸（比细线略低，3px 仍可辨）
 const LABEL_MIN_PX = 20; // 显示色号标签的最小格子屏幕尺寸
 const DEFAULT_UNDERLAY_OPACITY = 0.35;
 
@@ -203,6 +204,24 @@ export function PatternEditor({
         ctx.lineTo(px, Math.min(H, gy + gridHeight * cs));
       }
       for (let y = y0; y <= y1 + 1; y++) {
+        const py = Math.round(gy + y * cs) + 0.5;
+        ctx.moveTo(Math.max(0, gx), py);
+        ctx.lineTo(Math.min(W, gx + gridWidth * cs), py);
+      }
+      ctx.stroke();
+    }
+
+    // 每 5 格粗网格线，对应实体拼豆板的定位筋
+    if (cs >= GRID_LINE_BOLD_MIN_PX) {
+      ctx.strokeStyle = CANVAS_THEME.gridLineStrong;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let x = x0 - (x0 % 5); x <= x1 + 1; x += 5) {
+        const px = Math.round(gx + x * cs) + 0.5;
+        ctx.moveTo(px, Math.max(0, gy));
+        ctx.lineTo(px, Math.min(H, gy + gridHeight * cs));
+      }
+      for (let y = y0 - (y0 % 5); y <= y1 + 1; y += 5) {
         const py = Math.round(gy + y * cs) + 0.5;
         ctx.moveTo(Math.max(0, gx), py);
         ctx.lineTo(Math.min(W, gx + gridWidth * cs), py);

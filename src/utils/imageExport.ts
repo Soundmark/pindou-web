@@ -4,10 +4,35 @@
  */
 import { BEAD_PALETTE } from "@/utils/beadColors";
 import { CANVAS_THEME } from "@/utils/canvasTheme";
+import { renderPatternToCanvas } from "@/utils/patternRenderer";
 
 export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const res = await fetch(dataUrl);
   return res.blob();
+}
+
+/**
+ * 用像素矩阵直接生成图纸 PNG 并触发下载（导出 PNG 按钮，无后端）。
+ * 渲染走 renderPatternToCanvas：白底 + 细网格 + 每 5 格粗线，便于打印对照拼豆板。
+ */
+export async function downloadPatternPng(
+  pixels: number[][],
+  filename = `pattern-${Date.now()}.png`
+): Promise<void> {
+  const canvas = document.createElement("canvas");
+  renderPatternToCanvas(pixels, canvas, 20);
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("PNG export failed"))),
+      "image/png"
+    )
+  );
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /**
