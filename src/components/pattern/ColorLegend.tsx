@@ -22,6 +22,7 @@ export function ColorLegend({
     for (let y = 0; y < pixels.length; y++) {
       for (let x = 0; x < pixels[y].length; x++) {
         const colorId = pixels[y][x];
+        if (colorId < 0) continue; // 空格子不计入统计
         countMap.set(colorId, (countMap.get(colorId) || 0) + 1);
         total++;
       }

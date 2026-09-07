@@ -31,7 +31,9 @@ export function createPatternThumbnailBlob(
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const color = BEAD_PALETTE[pixels[y][x]];
+      const colorId = pixels[y][x];
+      if (colorId < 0) continue; // 空格子留白
+      const color = BEAD_PALETTE[colorId];
       const px = x * cellSize;
       const py = y * cellSize;
       ctx.fillStyle = color?.hex ?? "#ffffff";

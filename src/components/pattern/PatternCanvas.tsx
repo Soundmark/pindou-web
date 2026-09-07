@@ -3,21 +3,13 @@
 import { useEffect } from "react";
 import { useCanvas } from "@/hooks/useCanvas";
 import { BEAD_PALETTE } from "@/utils/beadColors";
-import { CANVAS_THEME } from "@/utils/canvasTheme";
+import { CANVAS_THEME, getLuminance } from "@/utils/canvasTheme";
 
 interface PatternCanvasProps {
   pixels: number[][];
   cellSize?: number;
   highlightedColorId?: number | null;
   showLabels?: boolean;
-}
-
-function getLuminance(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  // Relative luminance
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 export function PatternCanvas({
@@ -54,16 +46,24 @@ export function PatternCanvas({
         const px = x * cellSize;
         const py = y * cellSize;
 
-        // Set alpha for highlighting
-        if (isHighlighting) {
-          ctx.globalAlpha = colorId === highlightedColorId ? 1.0 : 0.25;
+        if (colorId < 0) {
+          // 空格子（不贴珠）：迷你棋盘格，与白色珠子区分
+          const q = Math.max(3, Math.floor(cellSize / 4));
+          ctx.fillStyle = CANVAS_THEME.checkerDark;
+          ctx.fillRect(px, py, q, q);
+          ctx.fillRect(px + q, py + q, q, q);
+        } else {
+          // Set alpha for highlighting
+          if (isHighlighting) {
+            ctx.globalAlpha = colorId === highlightedColorId ? 1.0 : 0.25;
+          }
+
+          ctx.fillStyle = color?.hex ?? "#ffffff";
+          ctx.fillRect(px, py, cellSize, cellSize);
+
+          // Reset alpha
+          ctx.globalAlpha = 1.0;
         }
-
-        ctx.fillStyle = color?.hex ?? "#ffffff";
-        ctx.fillRect(px, py, cellSize, cellSize);
-
-        // Reset alpha
-        ctx.globalAlpha = 1.0;
 
         // Grid lines
         ctx.strokeStyle = CANVAS_THEME.gridLine;

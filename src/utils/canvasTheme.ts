@@ -12,3 +12,11 @@ export const CANVAS_THEME = {
   cropMask: "rgba(74, 36, 48, 0.40)", // 裁剪遮罩 = primary-ink 40%
   cropOutline: "#c73a58", // 裁剪框描边 = primary-strong，浅/深照片上都可见
 } as const;
+
+/** 相对亮度（0~1），用于决定格子上的标签用深字还是浅字。 */
+export function getLuminance(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}

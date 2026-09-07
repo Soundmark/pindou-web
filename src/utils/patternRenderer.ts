@@ -156,8 +156,9 @@ export function renderPatternToCanvas(
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const color = beadColors[pixels[y][x]] || beadColors[0];
-      ctx.fillStyle = color.hex;
+      const colorId = pixels[y][x];
+      const color = colorId >= 0 ? beadColors[colorId] : undefined;
+      ctx.fillStyle = color ? color.hex : "#ffffff";
       ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
     }
   }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { CANVAS_THEME } from "@/utils/canvasTheme";
+import { clamp, fitViewFor, zoomAt, type View } from "@/utils/canvasView";
 
 interface CropPreviewProps {
   imageUrl: string;
@@ -18,12 +19,6 @@ interface CropRect {
   h: number;
 }
 
-interface View {
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-}
-
 type DragMode = "move" | "nw" | "ne" | "sw" | "se" | "n" | "s" | "w" | "e" | "pan" | "panImage";
 
 type InteractionMode = "both" | "crop" | "image";
@@ -34,34 +29,8 @@ const MAX_SCALE = 16; // max zoom relative to natural pixels
 const ZOOM_STEP = 1.25;
 const MAX_OUTPUT_DIM = 4096; // cap confirm output resolution
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
 function clampScale(scale: number, minScale: number): number {
   return clamp(scale, minScale, MAX_SCALE);
-}
-
-function fitViewFor(
-  stage: { w: number; h: number },
-  imgW: number,
-  imgH: number
-): View {
-  const scale = Math.min(stage.w / imgW, stage.h / imgH);
-  return {
-    scale,
-    offsetX: (stage.w - imgW * scale) / 2,
-    offsetY: (stage.h - imgH * scale) / 2,
-  };
-}
-
-function zoomAt(anchor: { x: number; y: number }, view: View, newScale: number): View {
-  const ratio = newScale / view.scale;
-  return {
-    scale: newScale,
-    offsetX: anchor.x - (anchor.x - view.offsetX) * ratio,
-    offsetY: anchor.y - (anchor.y - view.offsetY) * ratio,
-  };
 }
 
 function cropScreenRect(crop: CropRect, view: View): CropRect {

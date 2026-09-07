@@ -23,8 +23,11 @@ export function useCanvas() {
 
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-          ctx.fillStyle = getColor(pixels[y][x]);
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          const colorId = pixels[y][x];
+          if (colorId >= 0) {
+            ctx.fillStyle = getColor(colorId);
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
           ctx.strokeStyle = CANVAS_THEME.gridLine;
           ctx.lineWidth = 0.5;
           ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);

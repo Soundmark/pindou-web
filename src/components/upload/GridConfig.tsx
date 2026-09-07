@@ -9,6 +9,10 @@ interface GridConfigProps {
   onBack: () => void;
   initialWidth?: number;
   initialHeight?: number;
+  /** 覆盖默认的"生成图案"按钮文案（空白/底图模式为"进入编辑器"） */
+  generateLabel?: string;
+  /** 额外配置区（底图模式的起步方式单选由页面注入） */
+  startModeSlot?: React.ReactNode;
 }
 
 export function GridConfig({
@@ -16,6 +20,8 @@ export function GridConfig({
   onBack,
   initialWidth = 32,
   initialHeight = 32,
+  generateLabel,
+  startModeSlot,
 }: GridConfigProps) {
   const t = useTranslations("grid");
   const tc = useTranslations("common");
@@ -64,6 +70,7 @@ export function GridConfig({
           </div>
         </div>
       </div>
+      {startModeSlot}
       <p className="text-sm text-text-secondary">
         {t.rich("totalBeads", { count: width * height, b: bold })}
       </p>
@@ -72,7 +79,7 @@ export function GridConfig({
           {tc("back")}
         </Button>
         <Button onClick={() => onGenerate(width, height)}>
-          {t("generate")}
+          {generateLabel ?? t("generate")}
         </Button>
       </div>
     </div>

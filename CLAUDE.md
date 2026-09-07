@@ -30,7 +30,7 @@ src/
 │   │   ├── not-found.tsx         # 本地化 404
 │   │   ├── (auth)/login/         # 登录页
 │   │   ├── admin/tags/           # 管理员标签管理
-│   │   ├── create/               # 创建图案（4 步向导）
+│   │   ├── create/               # 创建图案（模式选择 → 上传/裁剪/配置 → 涂色编辑器）
 │   │   ├── gallery/              # 公共画廊
 │   │   ├── my-patterns/          # 我的图案
 │   │   └── patterns/[id]/        # 图案详情
@@ -43,22 +43,27 @@ src/
 ├── components/
 │   ├── layout/                   # Header, AuthGuard, LanguageSwitcher
 │   ├── gallery/                  # GalleryCard
+│   ├── create/                   # ModeSelector（创建模式选择卡片）
+│   ├── editor/                   # PatternEditor（涂色编辑器）, EditorToolbar, ColorPalette, UnderlayControls, icons
 │   ├── pattern/                  # PatternCanvas, ColorLegend
-│   ├── upload/                   # ImageUploader, CropPreview, GridConfig
+│   ├── upload/                   # ImageUploader, CropPreview, GridConfig, PublishForm
 │   └── ui/                       # Button, Card, Modal, Spinner
-├── hooks/                        # useCanvas, useImageProcessor
+├── hooks/                        # useCanvas
 ├── lib/                          # auth.ts, validations.ts, db/
 ├── providers/                    # AuthProvider, QueryProvider
 ├── services/                     # diagramService.ts (React Query hooks)
 ├── types/                        # bead.ts, diagram.ts, api.ts
 └── utils/                        # 核心算法
-    ├── beadColors.ts             # 291 色 MARD 珠子调色板 + 颜色匹配
-    ├── canvasTheme.ts            # 屏幕内 canvas 绘制色板（与主题令牌手动同步）
+    ├── beadColors.ts             # MARD 珠子调色板（实际 221 色，A01-M15）+ 颜色匹配
+    ├── canvasTheme.ts            # 屏幕内 canvas 绘制色板（与主题令牌手动同步）+ getLuminance
+    ├── canvasView.ts             # canvas 视口变换（View/缩放/平移，裁剪器与编辑器共用）
     ├── colorQuantization.ts      # 颜色简化/合并
     ├── colorSystemMapping.json   # 多品牌颜色系统映射
-    ├── imageProcessor.ts         # 图像处理管线（双线性缩放、颜色匹配）
+    ├── imageProcessor.ts         # 图像处理管线（双线性缩放）
+    ├── imageToGrid.ts            # 图片 → 拼豆网格（LUT + 双线性 + CIE94，纯函数）
     ├── patternRenderer.ts        # 图案渲染（含图例绘制）
-    └── patternZip.ts             # 图案 ZIP 打包/解包
+    ├── patternZip.ts             # 图案 ZIP 打包/解包
+    └── pixelGrid.ts              # 网格代数：EMPTY_CELL(-1) 哨兵、洪泛填充、统计
 ```
 
 ## 响应式设计规范
@@ -153,10 +158,11 @@ grep -rnE '#ff8fa3|#e5e7eb|#e9e9e9' src/ --include="*.tsx"
 ## 颜色系统
 
 - 默认品牌：MARD
-- 调色板：291 种颜色（A01-M15），定义在 `src/utils/beadColors.ts`
-- 颜色匹配算法：CIEDE2000 Delta-E（最准确）
+- 调色板：221 种颜色（A01-M15），定义在 `src/utils/beadColors.ts`
+- 颜色匹配算法：CIEDE2000 Delta-E（最准确）；向导实际走 CIE94 + LUT 加速
 - 支持 LUT 加速：`/public/beadLut.json`
 - 支持多品牌映射：`src/utils/colorSystemMapping.json`
+- **空格子**：`pixels` 中的 `-1` 表示不贴珠（`pixelGrid.EMPTY_CELL`）；图例/统计/导出自动跳过，画布渲染为棋盘格。旧图纸没有 -1，天然兼容
 
 ## 关键架构决策
 
@@ -165,3 +171,4 @@ grep -rnE '#ff8fa3|#e5e7eb|#e9e9e9' src/ --include="*.tsx"
 3. **React Query** — 所有 API 请求通过 `src/services/diagramService.ts` 的 hooks
 4. **图像处理管线**：上传 → 裁剪 → 双线性缩放 → CIEDE2000 颜色匹配 → 渲染
 5. **图案导出**：PNG 直接渲染、ZIP 包含 pattern.json
+6. **三种创建模式统一进 PatternEditor**：上传转换 / 底图涂色（空网格描图或自动转换打底）/ 空白画布，均以 `pixels: number[][]` 为唯一数据形态，编辑器经 `onPixelsChange` 在笔画/填充/撤销等操作后上抛
