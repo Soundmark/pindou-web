@@ -82,6 +82,7 @@
   },
   "create": {
     "title": "创建图案",
+    "back": "返回",
     "steps": {
       "mode": "方式",
       "upload": "上传",
@@ -129,6 +130,8 @@
     "zoomIn": "放大",
     "zoomOut": "缩小",
     "fit": "适应窗口",
+    "fullscreen": "全屏",
+    "fullscreenExit": "退出全屏",
     "help": "单指涂色 · 双指拖动缩放 · 滚轮缩放",
     "paletteTitle": "选择颜色",
     "paletteGroupAria": "{group} 色系",

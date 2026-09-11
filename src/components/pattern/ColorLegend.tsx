@@ -8,14 +8,18 @@ interface ColorLegendProps {
   pixels: number[][];
   highlightedColorId: number | null;
   onHighlightColor: (colorId: number | null) => void;
+  /** wrap：现有换行列表；strip：全屏覆盖层底部的单行横向滚动条 */
+  orientation?: "wrap" | "strip";
 }
 
 export function ColorLegend({
   pixels,
   highlightedColorId,
   onHighlightColor,
+  orientation = "wrap",
 }: ColorLegendProps) {
   const t = useTranslations("legend");
+  const isStrip = orientation === "strip";
   const stats = useMemo(() => {
     const countMap = new Map<number, number>();
     let total = 0;
@@ -44,15 +48,29 @@ export function ColorLegend({
   );
 
   return (
-    <div className="w-full">
-      <p className="mb-3 text-sm text-text-secondary">
-        {t.rich("stats", {
-          total: stats.total,
-          colors: stats.entries.length,
-          b: bold,
-        })}
-      </p>
-      <div className="flex flex-wrap gap-2">
+    <div
+      className={
+        isStrip
+          ? "w-full shrink-0 border-t-[3px] border-clay-border bg-card-bg"
+          : "w-full"
+      }
+    >
+      {!isStrip && (
+        <p className="mb-3 text-sm text-text-secondary">
+          {t.rich("stats", {
+            total: stats.total,
+            colors: stats.entries.length,
+            b: bold,
+          })}
+        </p>
+      )}
+      <div
+        className={
+          isStrip
+            ? "flex gap-2 overflow-x-auto px-3 py-2 overscroll-x-contain"
+            : "flex flex-wrap gap-2"
+        }
+      >
         {stats.entries.map(({ colorId, count, color }) => {
           const isActive = highlightedColorId === colorId;
           return (
@@ -61,7 +79,7 @@ export function ColorLegend({
               onClick={() =>
                 onHighlightColor(isActive ? null : colorId)
               }
-              className={`flex clay-press items-center gap-1.5 rounded-full border-[3px] px-3 py-1.5 text-sm min-h-[44px] ${
+              className={`flex shrink-0 clay-press items-center gap-1.5 rounded-full border-[3px] px-3 py-1.5 text-sm min-h-[44px] ${
                 isActive
                   ? "border-primary/30 bg-primary/15 shadow-sm scale-105"
                   : "border-clay-border bg-surface shadow-button-secondary"

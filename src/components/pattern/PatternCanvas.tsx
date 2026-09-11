@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { CollapseIcon, ExpandIcon } from "@/components/editor/icons";
 import { BEAD_PALETTE } from "@/utils/beadColors";
 import { CANVAS_THEME } from "@/utils/canvasTheme";
 import { clamp, fitViewFor, getStagePoint, zoomAt, type View } from "@/utils/canvasView";
@@ -11,6 +12,10 @@ import { clamp, fitViewFor, getStagePoint, zoomAt, type View } from "@/utils/can
 interface PatternCanvasProps {
   pixels: number[][];
   highlightedColorId?: number | null;
+  /** 全屏覆盖层形态：画布区撑满剩余高度（替代 aspect-4/3 卡片） */
+  fullscreen?: boolean;
+  /** 传入后在缩放按钮行末尾显示全屏切换钮 */
+  onToggleFullscreen?: () => void;
 }
 
 const MAX_ZOOM = 40; // px per cell
@@ -22,7 +27,12 @@ const GRID_LINE_BOLD_MIN_PX = 3; // 每5格粗线的最小格子屏幕尺寸（�
  * 已发布图纸的只读查看器：滚轮缩放、拖动平移、双指捏合，
  * 视口数学与编辑器共用 canvasView.ts。
  */
-export function PatternCanvas({ pixels, highlightedColorId = null }: PatternCanvasProps) {
+export function PatternCanvas({
+  pixels,
+  highlightedColorId = null,
+  fullscreen = false,
+  onToggleFullscreen,
+}: PatternCanvasProps) {
   const t = useTranslations("editor");
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -207,6 +217,12 @@ export function PatternCanvas({ pixels, highlightedColorId = null }: PatternCanv
     setInitKey(null);
   }, []);
 
+  // 进入/退出全屏都重新适应窗口（新容器尺寸下居中）
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 对 fullscreen prop 变化的命令式视图重置，渲染期替代会引入 set-state-in-render
+    handleFit();
+  }, [fullscreen, handleFit]);
+
   // 滚轮缩放。React 绑定的 wheel 是 passive，需原生绑定以 allow preventDefault；
   // ctrl+wheel 保留浏览器页面缩放。
   useEffect(() => {
@@ -308,10 +324,20 @@ export function PatternCanvas({ pixels, highlightedColorId = null }: PatternCanv
   if (gridWidth === 0 || gridHeight === 0) return null;
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div
+      className={
+        fullscreen
+          ? "flex w-full min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-4"
+          : "flex w-full flex-col items-center gap-4"
+      }
+    >
       <div
         ref={containerRef}
-        className="relative aspect-4/3 w-full max-w-120 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
+        className={
+          fullscreen
+            ? "relative w-full flex-1 min-h-48 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
+            : "relative aspect-4/3 w-full max-w-120 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
+        }
       >
         {viewReady ? (
           <canvas
@@ -331,7 +357,7 @@ export function PatternCanvas({ pixels, highlightedColorId = null }: PatternCanv
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={() => zoomBy(1 / ZOOM_STEP)}
@@ -352,6 +378,17 @@ export function PatternCanvas({ pixels, highlightedColorId = null }: PatternCanv
         <Button variant="ghost" size="md" className="h-11" onClick={handleFit}>
           {t("fit")}
         </Button>
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            aria-label={fullscreen ? t("fullscreenExit") : t("fullscreen")}
+            title={fullscreen ? t("fullscreenExit") : t("fullscreen")}
+            className="flex h-11 w-11 clay-press shrink-0 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-text-secondary shadow-button-secondary active:shadow-button-secondary-pressed"
+          >
+            {fullscreen ? <CollapseIcon className="h-5 w-5" /> : <ExpandIcon className="h-5 w-5" />}
+          </button>
+        )}
       </div>
     </div>
   );

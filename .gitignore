@@ -42,4 +42,5 @@ next-env.d.ts
 .claude/frontend-workflow
 .claude/tsie-simulate-frontend/
 .claude/frontend-workflow/
+.claude/settings.local.json
 .playwright-mcp

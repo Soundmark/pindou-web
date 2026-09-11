@@ -8,6 +8,8 @@ import { ColorLegend } from "@/components/pattern/ColorLegend";
 import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
 import { downloadPatternPng } from "@/utils/imageExport";
+import { useFullscreenMode } from "@/hooks/useFullscreenMode";
+import { CollapseIcon } from "@/components/editor/icons";
 import { useSession } from "next-auth/react";
 import { Link } from "@/i18n/navigation";
 
@@ -19,8 +21,14 @@ export default function PatternDetailPage({
   const { id } = use(params);
   const { data: session } = useSession();
   const t = useTranslations("patternDetail");
+  const tEditor = useTranslations("editor");
   const { data, isLoading, error } = useDiagram(id);
   const [highlightedColor, setHighlightedColor] = useState<number | null>(null);
+  const {
+    active: isFullscreen,
+    toggle: toggleFullscreen,
+    exit: exitFullscreen,
+  } = useFullscreenMode();
 
   if (isLoading) {
     return (
@@ -79,12 +87,40 @@ export default function PatternDetailPage({
 
       {/* Pattern */}
       {pixels.length > 0 ? (
-        <div className="flex flex-col items-center gap-6">
-          <PatternCanvas pixels={pixels} highlightedColorId={highlightedColor} />
+        <div
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-60 flex flex-col bg-background animate-fade-in"
+              : "flex flex-col items-center gap-6"
+          }
+        >
+          {isFullscreen && (
+            <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b-[3px] border-clay-border bg-background px-4">
+              <h2 className="truncate text-lg font-semibold text-text-primary">
+                {diagram.name}
+              </h2>
+              <button
+                type="button"
+                onClick={exitFullscreen}
+                aria-label={tEditor("fullscreenExit")}
+                title={tEditor("fullscreenExit")}
+                className="flex h-11 w-11 clay-press shrink-0 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-text-secondary shadow-button-secondary active:shadow-button-secondary-pressed"
+              >
+                <CollapseIcon className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+          <PatternCanvas
+            pixels={pixels}
+            highlightedColorId={highlightedColor}
+            fullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+          />
           <ColorLegend
             pixels={pixels}
             highlightedColorId={highlightedColor}
             onHighlightColor={setHighlightedColor}
+            orientation={isFullscreen ? "strip" : "wrap"}
           />
         </div>
       ) : (

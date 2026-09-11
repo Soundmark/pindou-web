@@ -82,6 +82,7 @@
   },
   "create": {
     "title": "Create Pattern",
+    "back": "Back",
     "steps": {
       "mode": "Mode",
       "upload": "Upload",
@@ -129,6 +130,8 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "fit": "Fit",
+    "fullscreen": "Fullscreen",
+    "fullscreenExit": "Exit fullscreen",
     "help": "One finger paints · two fingers pan & zoom · wheel zooms",
     "paletteTitle": "Choose a color",
     "paletteGroupAria": "Color group {group}",
