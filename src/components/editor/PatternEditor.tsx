@@ -19,6 +19,7 @@ import { convertImageToGrid } from "@/utils/imageToGrid";
 import { EditorToolbar, type EditorTool } from "./EditorToolbar";
 import { ColorPalette } from "./ColorPalette";
 import { UnderlayControls } from "./UnderlayControls";
+import { CollapseIcon, ExpandIcon } from "./icons";
 
 interface PatternEditorProps {
   pixels: number[][];
@@ -28,6 +29,10 @@ interface PatternEditorProps {
   highlightedColorId: number | null;
   isProcessing: boolean;
   onPixelsChange: (pixels: number[][]) => void;
+  /** 全屏覆盖层形态：画布区撑满剩余高度（替代 aspect-4/3 卡片） */
+  fullscreen?: boolean;
+  /** 传入后在缩放按钮行末尾显示全屏切换钮 */
+  onToggleFullscreen?: () => void;
 }
 
 const MAX_ZOOM = 40; // px per cell
@@ -49,6 +54,8 @@ export function PatternEditor({
   highlightedColorId,
   isProcessing,
   onPixelsChange,
+  fullscreen = false,
+  onToggleFullscreen,
 }: PatternEditorProps) {
   const t = useTranslations("editor");
   const tCreate = useTranslations("create");
@@ -244,22 +251,34 @@ export function PatternEditor({
     });
   }, [draw]);
 
-  // 每次底图 URL 变化解码并缓存 Image（解码完成后重绘）
+  // latest-ref：底图 effect 依赖须收窄到 underlayDataUrl，
+  // 否则 hover/缩放等每次重建 scheduleDraw 都会重跑该 effect 并清掉底图（闪烁根因）
+  const scheduleDrawRef = useRef(scheduleDraw);
   useEffect(() => {
-    underlayImgRef.current = null;
-    if (!underlayDataUrl) return;
+    scheduleDrawRef.current = scheduleDraw;
+  });
+
+  // 底图 URL 变化解码并缓存 Image；新图加载完成后原子替换（换图间隙保留旧图不闪）
+  useEffect(() => {
+    if (!underlayDataUrl) {
+      if (underlayImgRef.current) {
+        underlayImgRef.current = null;
+        scheduleDrawRef.current();
+      }
+      return;
+    }
     let cancelled = false;
     const img = new Image();
     img.onload = () => {
       if (cancelled) return;
       underlayImgRef.current = img;
-      scheduleDraw();
+      scheduleDrawRef.current();
     };
     img.src = underlayDataUrl;
     return () => {
       cancelled = true;
     };
-  }, [underlayDataUrl, scheduleDraw]);
+  }, [underlayDataUrl]);
 
   // 任何视觉状态变化都经 rAF 合并重绘
   useEffect(() => {
@@ -420,6 +439,12 @@ export function PatternEditor({
     setHasUserZoomed(false);
     setInitKey(null);
   }, []);
+
+  // 进入/退出全屏都重新适应窗口（新容器尺寸下居中）
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 对 fullscreen prop 变化的命令式视图重置，渲染期替代会引入 set-state-in-render
+    handleFit();
+  }, [fullscreen, handleFit]);
 
   // 滚轮缩放。React 绑定的 wheel 是 passive，需原生绑定以 allow preventDefault；
   // ctrl+wheel 保留浏览器页面缩放。
@@ -675,7 +700,13 @@ export function PatternEditor({
   const tc = useTranslations("common");
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div
+      className={
+        fullscreen
+          ? "flex w-full min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-4"
+          : "flex w-full flex-col items-center gap-4"
+      }
+    >
       <EditorToolbar
         tool={tool}
         onToolChange={setTool}
@@ -699,7 +730,11 @@ export function PatternEditor({
 
       <div
         ref={containerRef}
-        className="relative aspect-4/3 w-full max-w-120 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
+        className={
+          fullscreen
+            ? "relative w-full flex-1 min-h-48 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
+            : "relative aspect-4/3 w-full max-w-120 overflow-hidden rounded-3xl border-[3px] border-clay-border bg-surface shadow-card"
+        }
       >
         {viewReady ? (
           <canvas
@@ -725,7 +760,7 @@ export function PatternEditor({
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={() => zoomBy(1 / ZOOM_STEP)}
@@ -746,6 +781,17 @@ export function PatternEditor({
         <Button variant="ghost" size="md" className="h-11" onClick={handleFit}>
           {t("fit")}
         </Button>
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            aria-label={fullscreen ? t("fullscreenExit") : t("fullscreen")}
+            title={fullscreen ? t("fullscreenExit") : t("fullscreen")}
+            className="flex h-11 w-11 clay-press shrink-0 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-text-secondary shadow-button-secondary active:shadow-button-secondary-pressed"
+          >
+            {fullscreen ? <CollapseIcon className="h-5 w-5" /> : <ExpandIcon className="h-5 w-5" />}
+          </button>
+        )}
       </div>
 
       {hasUnderlay && (
