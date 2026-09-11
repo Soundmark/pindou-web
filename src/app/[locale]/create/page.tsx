@@ -18,6 +18,8 @@ import { createPatternThumbnailBlob, dataUrlToBlob, downloadPatternPng, uploadIm
 import { convertImageToGrid, loadImageData } from "@/utils/imageToGrid";
 import { BEAD_PALETTE } from "@/utils/beadColors";
 import { countBeads, countColors, createEmptyGrid } from "@/utils/pixelGrid";
+import { useFullscreenMode } from "@/hooks/useFullscreenMode";
+import { CollapseIcon } from "@/components/editor/icons";
 
 type Step = "mode" | "upload" | "crop" | "configure" | "editor";
 type UnderlayStartMode = "empty" | "converted";
@@ -30,6 +32,7 @@ const MODE_STEPS: Record<CreateMode, Step[]> = {
 
 export default function CreatePage() {
   const t = useTranslations("create");
+  const tEditor = useTranslations("editor");
   const [step, setStep] = useState<Step>("mode");
   const [mode, setMode] = useState<CreateMode | null>(null);
   const [underlayStartMode, setUnderlayStartMode] = useState<UnderlayStartMode>("empty");
@@ -49,6 +52,11 @@ export default function CreatePage() {
   const { status } = useSession();
   const router = useRouter();
   const createDiagram = useCreateDiagram();
+  const {
+    active: isFullscreen,
+    toggle: toggleFullscreen,
+    exit: exitFullscreen,
+  } = useFullscreenMode();
 
   const colorCount = useMemo(() => countColors(pixels), [pixels]);
   const beadTotal = useMemo(() => countBeads(pixels), [pixels]);
@@ -125,6 +133,7 @@ export default function CreatePage() {
   };
 
   const handleReset = () => {
+    exitFullscreen(); // 防御：重置时若处于全屏先退出
     setStep("mode");
     setMode(null);
     setUnderlayStartMode("empty");
@@ -233,7 +242,16 @@ export default function CreatePage() {
       {/* Step Content */}
       {step === "mode" && <ModeSelector onSelectMode={handleSelectMode} />}
 
-      {step === "upload" && <ImageUploader onImage={handleImage} />}
+      {step === "upload" && (
+        <>
+          <ImageUploader onImage={handleImage} />
+          <div className="mt-6 flex justify-center">
+            <Button variant="secondary" onClick={handleReset}>
+              {t("back")}
+            </Button>
+          </div>
+        </>
+      )}
 
       {step === "crop" && imageUrl && (
         <CropPreview
@@ -285,7 +303,29 @@ export default function CreatePage() {
       )}
 
       {step === "editor" && (
-        <div className="flex flex-col items-center gap-6">
+        <div
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-60 flex flex-col bg-background animate-fade-in"
+              : "flex flex-col items-center gap-6"
+          }
+        >
+          {isFullscreen && (
+            <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b-[3px] border-clay-border bg-background px-4">
+              <h2 className="truncate text-lg font-semibold text-text-primary">
+                {t("title")}
+              </h2>
+              <button
+                type="button"
+                onClick={exitFullscreen}
+                aria-label={tEditor("fullscreenExit")}
+                title={tEditor("fullscreenExit")}
+                className="flex h-11 w-11 clay-press shrink-0 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-text-secondary shadow-button-secondary active:shadow-button-secondary-pressed"
+              >
+                <CollapseIcon className="h-5 w-5" />
+              </button>
+            </div>
+          )}
           <PatternEditor
             pixels={pixels}
             gridWidth={gridWidth}
@@ -294,13 +334,16 @@ export default function CreatePage() {
             highlightedColorId={highlightedColor}
             isProcessing={isProcessing}
             onPixelsChange={handlePixelsChange}
+            fullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
           />
           <ColorLegend
             pixels={pixels}
             highlightedColorId={highlightedColor}
             onHighlightColor={setHighlightedColor}
+            orientation={isFullscreen ? "strip" : "wrap"}
           />
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className={isFullscreen ? "hidden" : "flex flex-wrap items-center justify-center gap-4"}>
             <div className="rounded-full border-[3px] border-primary-light bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary-strong">
               {t("paintedCount", { painted: beadTotal, total: gridWidth * gridHeight })}
             </div>
@@ -308,7 +351,7 @@ export default function CreatePage() {
               {t("colorCount", { count: colorCount })}
             </div>
           </div>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className={isFullscreen ? "hidden" : "flex flex-wrap justify-center gap-3"}>
             <Button onClick={handlePublishClick} disabled={publishing || isProcessing}>
               {status === "authenticated" ? t("publish") : t("signInToPublish")}
             </Button>

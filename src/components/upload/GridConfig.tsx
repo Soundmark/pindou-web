@@ -74,7 +74,7 @@ export function GridConfig({
       <p className="text-sm text-text-secondary">
         {t.rich("totalBeads", { count: width * height, b: bold })}
       </p>
-      <div className="flex gap-3">
+      <div className="flex justify-center gap-3">
         <Button variant="secondary" onClick={onBack}>
           {tc("back")}
         </Button>

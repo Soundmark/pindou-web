@@ -245,10 +245,15 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
     const sw = crop.w * view.scale;
     const sh = crop.h * view.scale;
     ctx.fillStyle = CANVAS_THEME.cropMask;
-    ctx.fillRect(0, 0, stage.w, Math.max(0, sy));
-    ctx.fillRect(0, sy + sh, stage.w, Math.max(0, stage.h - sy - sh));
-    ctx.fillRect(0, Math.max(0, sy), Math.max(0, sx), Math.min(sh, stage.h - Math.max(0, sy)));
-    ctx.fillRect(sx + sw, Math.max(0, sy), Math.max(0, stage.w - sx - sw), Math.min(sh, stage.h - Math.max(0, sy)));
+    // 框可能被平移/缩放出画布：每块先与舞台求交，避免左右条带与底块重叠成暗角
+    const bandTop = Math.max(0, Math.min(sy, stage.h));
+    const bandBottom = Math.max(0, Math.min(sy + sh, stage.h));
+    ctx.fillRect(0, 0, stage.w, bandTop);
+    ctx.fillRect(0, bandBottom, stage.w, stage.h - bandBottom);
+    const left = Math.max(0, Math.min(sx, stage.w));
+    const right = Math.max(0, Math.min(sx + sw, stage.w));
+    ctx.fillRect(0, bandTop, left, bandBottom - bandTop);
+    ctx.fillRect(right, bandTop, stage.w - right, bandBottom - bandTop);
     ctx.strokeStyle = CANVAS_THEME.cropOutline;
     ctx.lineWidth = 2;
     ctx.strokeRect(sx, sy, sw, sh);
@@ -689,7 +694,7 @@ export function CropPreview({ imageUrl, onCrop, onBack }: CropPreviewProps) {
             {t("help")}
           </p>
 
-          <div className="flex gap-3">
+          <div className="flex justify-center gap-3">
             <Button variant="secondary" onClick={onBack}>
               {tc("back")}
             </Button>
