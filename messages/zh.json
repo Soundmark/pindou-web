@@ -9,12 +9,15 @@
     "close": "关闭",
     "all": "全部",
     "previous": "上一页",
-    "next": "下一页"
+    "next": "下一页",
+    "unknownUser": "未知用户",
+    "retry": "重试"
   },
   "header": {
     "navCreate": "创建",
     "navGallery": "画廊",
     "navMyPatterns": "我的图案",
+    "navAdminTags": "标签管理",
     "openMenu": "打开菜单",
     "switchTo": "EN",
     "switchAria": "切换到 English"
@@ -29,8 +32,53 @@
   "auth": {
     "welcome": "欢迎来到 Pindou",
     "subtitle": "登录以创建、保存和分享拼豆图纸",
+    "wechatSignIn": "使用微信扫码登录",
     "googleSignIn": "使用 Google 登录",
-    "terms": "登录即表示你同意我们的服务条款"
+    "providerUnavailable": "该登录方式暂未开放",
+    "providersFailed": "无法连接登录服务，请稍后再试",
+    "callbackLoading": "正在登录…",
+    "callbackFailed": "登录失败",
+    "backToLogin": "返回登录",
+    "loginRequired": "请先登录",
+    "terms": "登录即表示你同意我们的服务条款",
+    "username": "用户名",
+    "usernameHint": "3–20 位字母、数字或下划线",
+    "nickname": "昵称",
+    "password": "密码",
+    "passwordHint": "8–72 个字符",
+    "confirmPassword": "确认密码",
+    "passwordMismatch": "两次输入的密码不一致",
+    "signInAction": "登录",
+    "signingIn": "登录中…",
+    "orDivider": "或",
+    "register": "注册",
+    "registerTitle": "创建账号",
+    "registerSubtitle": "取一个用户名和昵称就可以开始",
+    "registerAction": "注册并登录",
+    "registering": "注册中…",
+    "haveAccount": "已有账号？",
+    "noAccount": "还没有账号？",
+    "signInLink": "去登录",
+    "noPasswordRecovery": "目前没有找回密码功能，请妥善保管你的密码。",
+    "errors": {
+      "not_configured": "该登录方式尚未配置",
+      "invalid_state": "登录请求已过期，请重试",
+      "wechat_denied": "你取消了微信登录",
+      "google_denied": "你取消了 Google 登录",
+      "missing_code": "登录服务未返回授权码，请检查回调配置",
+      "wechat_failed": "微信登录失败，请重试",
+      "google_failed": "Google 登录失败，请重试",
+      "invalid_ticket": "登录链接已失效，请重新登录",
+      "missing_ticket": "登录链接不完整，请重新登录",
+      "network_error": "网络异常，请检查网络后重试",
+      "invalid_credentials": "用户名或密码错误",
+      "invalid_username": "用户名需为 3–20 位字母、数字或下划线",
+      "invalid_nickname": "昵称需为 1–20 个字符",
+      "invalid_password": "密码需为 8–72 个字符",
+      "username_taken": "该用户名已被占用",
+      "rate_limited": "尝试过于频繁，请稍后再试",
+      "generic": "出了点问题，请重试"
+    }
   },
   "gallery": {
     "title": "画廊",
@@ -78,7 +126,14 @@
     "favoriteCount": "{count, plural, other {# 次收藏}}",
     "favorite": "♥ 收藏",
     "downloadPng": "下载 PNG",
-    "editInCreator": "在创建器中编辑"
+    "editInCreator": "在创建器中编辑",
+    "favorited": "♥ 已收藏",
+    "unfavorite": "取消收藏",
+    "delete": "删除",
+    "deleteConfirm": "确定删除这个图案吗？此操作不可撤销。",
+    "deleteFailed": "删除失败，请重试。",
+    "loadingPattern": "正在加载图纸…",
+    "patternLoadFailed": "图纸加载失败，已显示预览图。"
   },
   "create": {
     "title": "创建图案",
@@ -111,7 +166,15 @@
     "noData": "没有图案数据，请返回重试。",
     "publish": "发布到画廊",
     "signInToPublish": "登录并发布",
-    "publishFailed": "发布失败，请重试。"
+    "publishFailed": "发布失败，请重试。",
+    "saveFailed": "保存失败，请重试。",
+    "draftSaved": "已保存到「我的图案」",
+    "errors": {
+      "contentRisky": "标题或标签未通过内容审核，请修改后重试。",
+      "imageRisky": "该图案未通过内容审核。",
+      "unauthorized": "登录已过期，请重新登录。",
+      "uploadFailed": "上传失败，请检查网络后重试。"
+    }
   },
   "editor": {
     "toolGroupAria": "工具",
@@ -146,14 +209,11 @@
     "title": "发布到画廊",
     "name": "名称",
     "namePlaceholder": "给图案起个名字",
-    "description": "描述",
-    "descriptionPlaceholder": "介绍一下这个图案（选填）",
     "tags": "标签",
-    "isPublic": "公开",
-    "isPublicHint": "公开后所有人都能在画廊看到这个图案",
     "cancel": "取消",
     "submit": "发布",
-    "submitting": "发布中…"
+    "submitting": "发布中…",
+    "saveDraft": "保存草稿"
   },
   "upload": {
     "previewAlt": "预览",
@@ -187,7 +247,7 @@
   },
   "adminTags": {
     "accessDeniedTitle": "无权访问",
-    "accessDeniedDescription": "登录后管理标签。",
+    "accessDeniedDescription": "只有管理员可以管理标签。",
     "title": "标签管理",
     "subtitle": "管理图案标签",
     "newTag": "新建标签",
@@ -195,7 +255,10 @@
     "emptyDescription": "创建第一个标签来整理图案。",
     "createTitle": "创建标签",
     "namePlaceholder": "标签名称",
-    "deleteConfirm": "确定删除这个标签吗？"
+    "deleteConfirm": "确定删除这个标签吗？",
+    "duplicateName": "已有同名标签。",
+    "invalidName": "标签名需为 1–20 个字符。",
+    "failed": "操作失败，请重试。"
   },
   "metadata": {
     "title": "Pindou - 拼豆图纸创作工具",

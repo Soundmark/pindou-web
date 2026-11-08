@@ -6,8 +6,9 @@ import { useMyDiagrams, useFavorites, useDeleteMyDiagram, useUnfavorite } from "
 import { GalleryCard } from "@/components/gallery/GalleryCard";
 import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/providers/AuthProvider";
 import { useRouter } from "@/i18n/navigation";
+import type { DiagramItem, MyDiagramItem } from "@/types/diagram";
 
 export default function MyPatternsPage() {
   const { data: session } = useSession();
@@ -24,7 +25,7 @@ export default function MyPatternsPage() {
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-text-primary">{t("signInTitle")}</h1>
         <p className="mt-2 text-text-secondary">{t("signInDescription")}</p>
-        <Button className="mt-6" onClick={() => router.push("/login")}>
+        <Button className="mt-6" onClick={() => router.push(`/login?returnTo=${encodeURIComponent("/my-patterns")}`)}>
           {t("signInButton")}
         </Button>
       </div>
@@ -74,14 +75,14 @@ export default function MyPatternsPage() {
           />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {myDiagrams.map((d: any) => (
+            {myDiagrams.map((d: MyDiagramItem) => (
               <div key={d._id} className="group relative">
                 <GalleryCard
                   _id={d._id}
                   name={d.name}
                   userName={session.user?.name || t("fallbackMe")}
                   imageUrl={d.imageUrl}
-                  thumbnailUrl={d.thumbnailUrl}
+                  thumbnailUrl={d.thumbnailUrl || ""}
                   width={d.width}
                   height={d.height}
                   colorCount={d.colorCount}
@@ -116,21 +117,22 @@ export default function MyPatternsPage() {
           />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {favorites.map((f: any) => (
+            {favorites.map((f: DiagramItem) => (
               <div key={f._id} className="group relative">
                 <GalleryCard
-                  _id={f.diagramId}
-                  name={f.diagramSnapshot?.name || t("fallbackPattern")}
-                  userName={f.diagramSnapshot?.userName || t("fallbackUnknown")}
-                  imageUrl={f.diagramSnapshot?.imageUrl || ""}
-                  thumbnailUrl={f.diagramSnapshot?.thumbnailUrl || ""}
-                  width={f.diagramSnapshot?.width || 0}
-                  height={f.diagramSnapshot?.height || 0}
-                  colorCount={0}
-                  favoriteCount={0}
+                  _id={f._id}
+                  name={f.name || t("fallbackPattern")}
+                  userName={f.userName || t("fallbackUnknown")}
+                  imageUrl={f.imageUrl || ""}
+                  thumbnailUrl={f.thumbnailUrl || ""}
+                  width={f.width || 0}
+                  height={f.height || 0}
+                  colorCount={f.colorCount || 0}
+                  favoriteCount={f.favoriteCount || 0}
+                  isFavorited
                 />
                 <button
-                  onClick={() => unfavMutation.mutate(f.diagramId)}
+                  onClick={() => unfavMutation.mutate(f._id)}
                   aria-label={t("unfavoriteAria")}
                   className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-clay-border bg-surface text-coral opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-coral hover:text-primary-ink active:translate-y-[3px] active:shadow-button-secondary-pressed"
                 >

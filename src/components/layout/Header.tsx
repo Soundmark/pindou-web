@@ -1,29 +1,40 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { Link, usePathname } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { useAuth } from "@/providers/AuthProvider";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
 export function Header() {
-  const { data: session } = useSession();
+  const { session, user, signOut } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("header");
   const tc = useTranslations("common");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
-    setMobileMenuOpen(false);
+    queueMicrotask(() => setMobileMenuOpen(false));
   }, [pathname]);
+
+  const goLogin = () => {
+    router.push(`/login?returnTo=${encodeURIComponent(pathname)}`);
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    router.push("/");
+  };
 
   const navLinks = [
     { href: "/create", label: t("navCreate") },
     { href: "/gallery", label: t("navGallery") },
     ...(session ? [{ href: "/my-patterns", label: t("navMyPatterns") }] : []),
+    ...(user?.isAdmin ? [{ href: "/admin/tags", label: t("navAdminTags") }] : []),
   ];
 
   return (
@@ -66,7 +77,7 @@ export function Header() {
                 {session.user?.name}
               </span>
               <Button
-                onClick={() => signOut()}
+                onClick={handleSignOut}
                 variant="secondary"
                 size="sm"
                 className="max-sm:hidden"
@@ -76,7 +87,7 @@ export function Header() {
             </div>
           ) : (
             <Button
-              onClick={() => signIn()}
+              onClick={goLogin}
               size="sm"
               className="max-sm:hidden"
             >
@@ -143,7 +154,7 @@ export function Header() {
               <Button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  signOut();
+                  handleSignOut();
                 }}
                 variant="secondary"
                 className="mx-4 mt-1"
@@ -155,7 +166,7 @@ export function Header() {
             <Button
               onClick={() => {
                 setMobileMenuOpen(false);
-                signIn();
+                goLogin();
               }}
               className="mx-4 mt-2"
             >

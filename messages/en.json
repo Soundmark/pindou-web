@@ -9,12 +9,15 @@
     "close": "Close",
     "all": "All",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "unknownUser": "Unknown user",
+    "retry": "Retry"
   },
   "header": {
     "navCreate": "Create",
     "navGallery": "Gallery",
     "navMyPatterns": "My Patterns",
+    "navAdminTags": "Tag Admin",
     "openMenu": "Open menu",
     "switchTo": "中文",
     "switchAria": "Switch to Chinese"
@@ -29,8 +32,53 @@
   "auth": {
     "welcome": "Welcome to Pindou",
     "subtitle": "Sign in to create, save, and share bead patterns",
+    "wechatSignIn": "Sign in with WeChat",
     "googleSignIn": "Sign in with Google",
-    "terms": "By signing in, you agree to our Terms of Service"
+    "providerUnavailable": "This sign-in method is not available yet",
+    "providersFailed": "Could not reach the sign-in service. Please try again later.",
+    "callbackLoading": "Signing you in…",
+    "callbackFailed": "Sign-in failed",
+    "backToLogin": "Back to sign in",
+    "loginRequired": "Please sign in first",
+    "terms": "By signing in, you agree to our Terms of Service",
+    "username": "Username",
+    "usernameHint": "3–20 letters, numbers or underscores",
+    "nickname": "Nickname",
+    "password": "Password",
+    "passwordHint": "8–72 characters",
+    "confirmPassword": "Confirm password",
+    "passwordMismatch": "The passwords do not match",
+    "signInAction": "Sign in",
+    "signingIn": "Signing in…",
+    "orDivider": "or",
+    "register": "Sign up",
+    "registerTitle": "Create an account",
+    "registerSubtitle": "Choose a username and nickname to get started",
+    "registerAction": "Create account",
+    "registering": "Creating…",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "signInLink": "Sign in",
+    "noPasswordRecovery": "There is no password recovery yet — please keep your password safe.",
+    "errors": {
+      "not_configured": "This sign-in method is not configured yet.",
+      "invalid_state": "The sign-in request expired. Please try again.",
+      "wechat_denied": "WeChat sign-in was cancelled.",
+      "google_denied": "Google sign-in was cancelled.",
+      "missing_code": "The sign-in provider did not return a code. Check the callback configuration.",
+      "wechat_failed": "WeChat sign-in failed. Please try again.",
+      "google_failed": "Google sign-in failed. Please try again.",
+      "invalid_ticket": "The sign-in link has expired. Please sign in again.",
+      "missing_ticket": "The sign-in link is incomplete. Please sign in again.",
+      "network_error": "Network error. Please check your connection and try again.",
+      "invalid_credentials": "Incorrect username or password.",
+      "invalid_username": "Username must be 3–20 letters, numbers or underscores.",
+      "invalid_nickname": "Nickname must be 1–20 characters.",
+      "invalid_password": "Password must be 8–72 characters.",
+      "username_taken": "That username is already taken.",
+      "rate_limited": "Too many attempts. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    }
   },
   "gallery": {
     "title": "Gallery",
@@ -78,7 +126,14 @@
     "favoriteCount": "{count, plural, =1 {# favorite} other {# favorites}}",
     "favorite": "♥ Favorite",
     "downloadPng": "Download PNG",
-    "editInCreator": "Edit in Creator"
+    "editInCreator": "Edit in Creator",
+    "favorited": "♥ Favorited",
+    "unfavorite": "Unfavorite",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this pattern? This cannot be undone.",
+    "deleteFailed": "Delete failed. Please try again.",
+    "loadingPattern": "Loading pattern…",
+    "patternLoadFailed": "Could not load the pattern. Showing the preview image instead."
   },
   "create": {
     "title": "Create Pattern",
@@ -111,7 +166,15 @@
     "noData": "No pattern data. Please go back and try again.",
     "publish": "Publish to Gallery",
     "signInToPublish": "Sign in & Publish",
-    "publishFailed": "Publish failed. Please try again."
+    "publishFailed": "Publish failed. Please try again.",
+    "saveFailed": "Could not save. Please try again.",
+    "draftSaved": "Saved to My Patterns",
+    "errors": {
+      "contentRisky": "This title or tags were flagged by content moderation. Please revise them.",
+      "imageRisky": "This pattern was flagged by content moderation.",
+      "unauthorized": "Your session expired. Please sign in again.",
+      "uploadFailed": "Upload failed. Check your connection and try again."
+    }
   },
   "editor": {
     "toolGroupAria": "Tools",
@@ -146,14 +209,11 @@
     "title": "Publish to Gallery",
     "name": "Name",
     "namePlaceholder": "Name your pattern",
-    "description": "Description",
-    "descriptionPlaceholder": "Tell people about this pattern (optional)",
     "tags": "Tags",
-    "isPublic": "Public",
-    "isPublicHint": "Public patterns are visible to everyone in the gallery",
     "cancel": "Cancel",
     "submit": "Publish",
-    "submitting": "Publishing..."
+    "submitting": "Publishing...",
+    "saveDraft": "Save Draft"
   },
   "upload": {
     "previewAlt": "Preview",
@@ -187,7 +247,7 @@
   },
   "adminTags": {
     "accessDeniedTitle": "Access Denied",
-    "accessDeniedDescription": "Sign in to manage tags.",
+    "accessDeniedDescription": "Only administrators can manage tags.",
     "title": "Tags",
     "subtitle": "Manage pattern tags",
     "newTag": "New Tag",
@@ -195,7 +255,10 @@
     "emptyDescription": "Create your first tag to organize patterns.",
     "createTitle": "Create Tag",
     "namePlaceholder": "Tag name",
-    "deleteConfirm": "Delete this tag?"
+    "deleteConfirm": "Delete this tag?",
+    "duplicateName": "A tag with this name already exists.",
+    "invalidName": "Tag names must be 1–20 characters.",
+    "failed": "Operation failed. Please try again."
   },
   "metadata": {
     "title": "Pindou - Bead Pattern Creator",

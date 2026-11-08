@@ -56,12 +56,12 @@ export default async function LocaleLayout({
     <html lang={locale} className={`h-full ${fredoka.variable} ${nunito.variable}`}>
       <body className="min-h-full flex flex-col bg-background text-text-primary antialiased">
         <NextIntlClientProvider>
-          <AuthProvider>
-            <QueryProvider>
+          <QueryProvider>
+            <AuthProvider>
               <Header />
               <main className="flex-1">{children}</main>
-            </QueryProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>

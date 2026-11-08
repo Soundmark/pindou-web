@@ -1,5 +1,6 @@
 /**
- * 客户端图片导出与 R2 上传工具。
+ * 客户端图片导出工具（PNG 下载 / 缩略图生成）。
+ * 上传已迁到 `src/lib/oss-upload.ts`（阿里云 OSS PostObject）。
  * 仅在浏览器环境使用（依赖 canvas / fetch）。
  */
 import { BEAD_PALETTE } from "@/utils/beadColors";
@@ -75,33 +76,4 @@ export function createPatternThumbnailBlob(
       "image/png"
     );
   });
-}
-
-/**
- * 向 /api/upload 申请预签名地址，然后直传 R2，返回公开访问 URL。
- */
-export async function uploadImageToR2(
-  blob: Blob,
-  contentType: string,
-  filename: string
-): Promise<string> {
-  const presignRes = await fetch("/api/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename, contentType }),
-  });
-  const presignJson = await presignRes.json();
-  if (!presignRes.ok || !presignJson.data) {
-    throw new Error(presignJson.error ?? "Failed to request upload URL");
-  }
-
-  const { uploadUrl, publicUrl } = presignJson.data;
-  const putRes = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-  if (!putRes.ok) throw new Error("Failed to upload file");
-
-  return publicUrl;
 }

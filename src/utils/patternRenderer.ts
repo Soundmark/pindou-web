@@ -50,14 +50,12 @@ export function drawPattern(options: DrawOptions): void {
     colorCountMap.set(cell.color.id, c + 1);
   }
   const stats: ColorStat[] = [];
-  let total = 0;
   for (const [cid, count] of colorCountMap) {
     const color = BEAD_PALETTE.find((c) => c.id === cid);
     if (color) {
       const mapping = (colorSystemMapping as Record<string, unknown>)[color.hex.toUpperCase()] as Record<string, string> | undefined;
       const displayColor = mapping ? { ...color, id: mapping[colorSystem] } : color;
       stats.push({ color: displayColor, count, originalId: color.id });
-      total += count;
     }
   }
   stats.sort((a, b) => b.count - a.count);
@@ -117,7 +115,7 @@ export function drawPattern(options: DrawOptions): void {
   // Draw legend
   if (showLegend && stats.length > 0) {
     const lx = margin + 10;
-    let ly = margin + ph + 30;
+    const ly = margin + ph + 30;
     const itemH = 20;
     const swatchSize = 12;
     const cols = Math.min(stats.length, Math.floor((pw - 60) / 120));

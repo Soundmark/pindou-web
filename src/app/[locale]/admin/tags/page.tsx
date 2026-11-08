@@ -2,17 +2,21 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useTags } from "@/services/diagramService";
+import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from "@/services/diagramService";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/providers/AuthProvider";
+import type { TagItem } from "@/types/diagram";
 
 export default function AdminTagsPage() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const t = useTranslations("adminTags");
   const tc = useTranslations("common");
-  const { data, isLoading, refetch } = useTags();
+  const { data, isLoading } = useTags();
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTag = useDeleteTag();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -20,7 +24,7 @@ export default function AdminTagsPage() {
 
   const tags = data?.data || [];
 
-  if (!session) {
+  if (!user?.isAdmin) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-text-primary">{t("accessDeniedTitle")}</h1>
@@ -31,32 +35,33 @@ export default function AdminTagsPage() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    await fetch("/api/tags", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
-    setNewName("");
-    setShowCreate(false);
-    refetch();
+    try {
+      await createTag.mutateAsync(newName.trim());
+      setNewName("");
+      setShowCreate(false);
+    } catch (e) {
+      window.alert(errorMessage(e, t));
+    }
   };
 
   const handleRename = async (id: string) => {
     if (!editName.trim()) return;
-    await fetch(`/api/tags/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName.trim() }),
-    });
-    setEditingId(null);
-    setEditName("");
-    refetch();
+    try {
+      await updateTag.mutateAsync({ _id: id, name: editName.trim() });
+      setEditingId(null);
+      setEditName("");
+    } catch (e) {
+      window.alert(errorMessage(e, t));
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t("deleteConfirm"))) return;
-    await fetch(`/api/tags/${id}`, { method: "DELETE" });
-    refetch();
+    try {
+      await deleteTag.mutateAsync(id);
+    } catch (e) {
+      window.alert(errorMessage(e, t));
+    }
   };
 
   return (
@@ -75,7 +80,7 @@ export default function AdminTagsPage() {
         <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : (
         <div className="space-y-2">
-          {tags.map((tag: any) => (
+          {tags.map((tag: TagItem) => (
             <div
               key={tag._id}
               className="flex items-center justify-between rounded-2xl border-[3px] border-clay-border bg-surface px-5 py-3 shadow-card"
@@ -105,12 +110,6 @@ export default function AdminTagsPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  {tag.color && (
-                    <div
-                      className="h-6 w-6 rounded-full border-2 border-clay-border"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                  )}
                   <span className="text-sm font-medium text-text-primary">{tag.name}</span>
                   <span className="text-xs text-text-muted">({tag.diagramCount || 0})</span>
                 </div>
@@ -165,4 +164,14 @@ export default function AdminTagsPage() {
       </Modal>
     </div>
   );
+}
+
+/** 后端错误码 → 文案（duplicate_name 是最常见的失败） */
+function errorMessage(e: unknown, t: ReturnType<typeof useTranslations>): string {
+  const code =
+    e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : "";
+  if (code === "duplicate_name") return t("duplicateName");
+  if (code === "invalid_name_length") return t("invalidName");
+  if (code === "forbidden" || code === "owner_not_configured") return t("accessDeniedDescription");
+  return t("failed");
 }

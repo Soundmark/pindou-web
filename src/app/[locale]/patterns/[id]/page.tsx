@@ -1,17 +1,26 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useDiagram } from "@/services/diagramService";
+import {
+  useCheckFavorited,
+  useDeleteDiagram,
+  useDiagram,
+  useFavorite,
+  useUnfavorite,
+} from "@/services/diagramService";
 import { PatternCanvas } from "@/components/pattern/PatternCanvas";
 import { ColorLegend } from "@/components/pattern/ColorLegend";
 import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
 import { downloadPatternPng } from "@/utils/imageExport";
+import { cellsToPixels, loadPatternFromZip } from "@/utils/patternZip";
 import { useFullscreenMode } from "@/hooks/useFullscreenMode";
 import { CollapseIcon } from "@/components/editor/icons";
-import { useSession } from "next-auth/react";
-import { Link } from "@/i18n/navigation";
+import { useAuth } from "@/providers/AuthProvider";
+import { Link, useRouter } from "@/i18n/navigation";
+
+type PatternLoadState = "idle" | "loading" | "ready" | "failed";
 
 export default function PatternDetailPage({
   params,
@@ -19,16 +28,51 @@ export default function PatternDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: session } = useSession();
+  const { user, status } = useAuth();
+  const router = useRouter();
   const t = useTranslations("patternDetail");
   const tEditor = useTranslations("editor");
+  const tc = useTranslations("common");
   const { data, isLoading, error } = useDiagram(id);
+
   const [highlightedColor, setHighlightedColor] = useState<number | null>(null);
+  const [pixels, setPixels] = useState<number[][]>([]);
+  const [patternState, setPatternState] = useState<PatternLoadState>("idle");
+
+  const favorited = useCheckFavorited(id).data ?? false;
+  const favorite = useFavorite();
+  const unfavorite = useUnfavorite();
+  const deleteDiagram = useDeleteDiagram();
+
   const {
     active: isFullscreen,
     toggle: toggleFullscreen,
     exit: exitFullscreen,
   } = useFullscreenMode();
+
+  const diagram = data?.data;
+
+  // 后端不存像素：按 DTO 里的 ZIP 地址取回 pattern.json 再还原网格
+  useEffect(() => {
+    if (!diagram?.zipUrl || patternState !== "idle") return;
+    let cancelled = false;
+    void (async () => {
+      setPatternState("loading");
+      try {
+        const res = await fetch(diagram.zipUrl);
+        if (!res.ok) throw new Error("pattern fetch failed");
+        const pattern = await loadPatternFromZip(await res.arrayBuffer());
+        if (cancelled) return;
+        setPixels(cellsToPixels(pattern.cells, pattern.width, pattern.height));
+        setPatternState("ready");
+      } catch {
+        if (!cancelled) setPatternState("failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [diagram, patternState]);
 
   if (isLoading) {
     return (
@@ -38,7 +82,7 @@ export default function PatternDetailPage({
     );
   }
 
-  if (error || !data?.data) {
+  if (error || !diagram) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16">
         <EmptyState title={t("notFoundTitle")} description={t("notFoundDescription")} />
@@ -46,21 +90,32 @@ export default function PatternDetailPage({
     );
   }
 
-  const diagram = data.data;
+  const canManage = Boolean(diagram.isOwner || user?.isAdmin);
 
-  // Convert pixels back to 2D array for rendering
-  const pixels: number[][] = diagram.pixels || [];
+  const handleDelete = async () => {
+    if (!window.confirm(t("deleteConfirm"))) return;
+    try {
+      await deleteDiagram.mutateAsync(id);
+      router.push("/gallery");
+    } catch {
+      window.alert(t("deleteFailed"));
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-primary">{diagram.name}</h1>
-        {diagram.description && (
-          <p className="mt-1 text-text-secondary">{diagram.description}</p>
-        )}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-text-primary">{diagram.name}</h1>
+          {canManage && (
+            <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleteDiagram.isPending}>
+              {t("delete")}
+            </Button>
+          )}
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
-          <span>{t("by", { userName: diagram.userName })}</span>
+          <span>{t("by", { userName: diagram.userName || tc("unknownUser") })}</span>
           <span>·</span>
           <span>{diagram.width}x{diagram.height}</span>
           <span>·</span>
@@ -75,7 +130,7 @@ export default function PatternDetailPage({
             {diagram.tags.map((tag: string) => (
               <Link
                 key={tag}
-                href={`/gallery?tag=${tag}`}
+                href={`/gallery?tag=${encodeURIComponent(tag)}`}
                 className="rounded-full border-2 border-primary/25 bg-primary/15 px-4 py-1.5 text-xs font-semibold text-primary-strong hover:bg-primary/25"
               >
                 {tag}
@@ -124,25 +179,35 @@ export default function PatternDetailPage({
           />
         </div>
       ) : (
-        <div className="flex justify-center">
-          <img
-            src={diagram.imageUrl}
-            alt={diagram.name}
-            className="max-h-96 rounded-2xl object-contain shadow-card"
-          />
+        <div className="flex flex-col items-center gap-3">
+          {patternState === "loading" || patternState === "idle" ? (
+            <div className="flex flex-col items-center gap-2">
+              <Spinner className="h-6 w-6" />
+              <span className="text-xs text-text-muted">{t("loadingPattern")}</span>
+            </div>
+          ) : patternState === "failed" ? (
+            <p className="text-xs text-text-muted">{t("patternLoadFailed")}</p>
+          ) : null}
+          {/* 解析完成前/失败后用缩略图兜底，页面永远不空 */}
+          {diagram.imageUrl && (
+            <img
+              src={diagram.imageUrl}
+              alt={diagram.name}
+              className="max-h-96 rounded-2xl object-contain shadow-card"
+            />
+          )}
         </div>
       )}
 
       {/* Actions */}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        {session && (
+        {status === "authenticated" && (
           <Button
-            variant="secondary"
-            onClick={() => {
-              fetch(`/api/diagrams/favorites/${id}`, { method: "POST" });
-            }}
+            variant={favorited ? "primary" : "secondary"}
+            onClick={() => (favorited ? unfavorite.mutate(id) : favorite.mutate(id))}
+            disabled={favorite.isPending || unfavorite.isPending}
           >
-            {t("favorite")}
+            {favorited ? t("favorited") : t("favorite")}
           </Button>
         )}
         <Button
@@ -150,6 +215,7 @@ export default function PatternDetailPage({
           onClick={() => {
             if (pixels.length > 0) void downloadPatternPng(pixels, `${diagram.name}.png`);
           }}
+          disabled={pixels.length === 0}
         >
           {t("downloadPng")}
         </Button>

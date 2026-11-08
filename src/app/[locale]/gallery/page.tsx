@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useDiagrams, useTags, useFavorite, useUnfavorite } from "@/services/diagramService";
 import { GalleryCard } from "@/components/gallery/GalleryCard";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/providers/AuthProvider";
+import type { DiagramItem, TagItem } from "@/types/diagram";
 
 export default function GalleryPage() {
   const { data: session } = useSession();
@@ -14,7 +15,14 @@ export default function GalleryPage() {
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState("");
   const [tag, setTag] = useState("");
+  const [sort, setSort] = useState<"newest" | "popular" | "colors">("newest");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
+
+  // 详情页的标签链接是 /gallery?tag=<name>，这里把它变成初始筛选条件
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("tag");
+    if (fromUrl) queueMicrotask(() => setTag(fromUrl));
+  }, []);
 
   const { data: tagsData } = useTags();
   const { data: diagramsData, isLoading } = useDiagrams({
@@ -22,6 +30,7 @@ export default function GalleryPage() {
     limit: 20,
     keyword: debouncedKeyword || undefined,
     tag: tag || undefined,
+    sort,
   });
 
   const favMutation = useFavorite();
@@ -35,7 +44,7 @@ export default function GalleryPage() {
 
   const handleFavorite = (id: string) => {
     if (!session) return;
-    const isFav = diagramsData?.data?.some((d: any) => d._id === id && d.isFavorited);
+    const isFav = diagramsData?.data?.some((d: DiagramItem) => d._id === id && d.isFavorited);
     if (isFav) {
       unfavMutation.mutate(id);
     } else {
@@ -78,7 +87,7 @@ export default function GalleryPage() {
             >
               {tc("all")}
             </button>
-            {tags.map((tg: any) => (
+            {tags.map((tg: TagItem) => (
               <button
                 key={tg._id}
                 onClick={() => setTag(tg.slug)}
@@ -97,7 +106,14 @@ export default function GalleryPage() {
         {/* Size filter */}
         <div className="flex items-center gap-3 text-sm">
           <span className="text-text-secondary">{t("sortLabel")}</span>
-          <select className="min-h-[44px] rounded-full border-[3px] border-clay-border bg-surface px-4 py-2 text-sm text-text-primary shadow-inset outline-none focus:border-primary">
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as typeof sort);
+              setPage(1);
+            }}
+            className="min-h-[44px] rounded-full border-[3px] border-clay-border bg-surface px-4 py-2 text-sm text-text-primary shadow-inset outline-none focus:border-primary"
+          >
             <option value="newest">{t("sortNewest")}</option>
             <option value="popular">{t("sortPopular")}</option>
             <option value="colors">{t("sortColors")}</option>
@@ -118,7 +134,7 @@ export default function GalleryPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {diagrams.map((d: any) => (
+            {diagrams.map((d: DiagramItem) => (
               <GalleryCard
                 key={d._id}
                 _id={d._id}

@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pindou Web —— 拼豆图纸创作器
 
-## Getting Started
+Next.js 16（App Router）+ React 19 + Tailwind CSS v4 + React Query。
+把照片转换成拼豆（Perler / Hama / Artkal）图案，支持底图涂色与空白画布。
 
-First, run the development server:
+**后端不在本仓库**：所有数据与登录都走 `D:\github\pindou\server`
+（Express + MySQL 8 + 阿里云 OSS）。本仓库只剩前端页面与算法。
+
+## 本地开发
+
+### 1. 起后端
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd D:/github/pindou/server
+docker compose up -d
+npm run init-db
+npm run dev          # 默认 3000；建议 PORT=3100 避开前端
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 起前端
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+在项目根目录新建 `.env.local`（**不入库**）：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:3100
+```
 
-## Learn More
+> ⚠️ `NEXT_PUBLIC_*` 是**构建期内联**的：CI / 生产构建必须把它作为环境变量注入，
+> 改完要重新构建。没配置时请求会抛 `missing_api_base`，不会静默打到同源 `/api`。
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+pnpm dev             # http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. 没有微信 / Google 凭据时怎么登录
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+用服务端现成的 H5 设备登录拿 token：
 
-## Deploy on Vercel
+```bash
+curl -X POST http://127.0.0.1:3100/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"platform":"h5","code":"e2e-user-device-0001"}'
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+把返回的 `token` 写进浏览器 `localStorage['pindou.auth.token']`，刷新即可。
+管理员：服务端 `ADMIN_UIDS=h5_e2e-admin-device-0001`。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 登录流程
+
+- 微信（开放平台「网站应用」扫码）与 Google 都由后端完成 OAuth；
+  前端只跳转 `${API}/auth/<provider>/start`，回调落 `/<locale>/auth/callback#ticket=...`，
+  再用 `POST /auth/exchange` 换正式 JWT。
+- 登录态存 `localStorage`，所有请求带 `Authorization: Bearer <JWT>`；
+  401 时全局清 token 并切回未登录。
+- 微信身份按 `unionid` 与小程序账号同步；Google 是独立账号。
+
+## 数据形态
+
+- 后端**不存像素**：图纸内容是 OSS 上的 ZIP（`pattern.json`），
+  详情页/编辑器按 `fileURL` 下载后还原成 `pixels: number[][]`。
+- `pixels` 里的 `-1` 表示空格子（不贴珠）。
+- 上传走 OSS PostObject 直传（`POST /storage/policy` 拿表单凭证），见 `src/lib/oss-upload.ts`。
+
+## 规范
+
+开发约定见 [CLAUDE.md](CLAUDE.md)：响应式（375px 起）、next-intl 字典、
+黏土风设计令牌、Canvas 配色同步等。
+
+## 校验
+
+```bash
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm build
+```
+
+E2E（Playwright）必须通过 `e2e-test-workflow` 插件生成/修改，跑测试用 `pnpm test:e2e`。

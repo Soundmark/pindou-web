@@ -11,10 +11,9 @@
 | UI 库 | React 19 |
 | 样式 | Tailwind CSS v4 (`@theme inline`) |
 | 状态管理 | React Query (`@tanstack/react-query` v5) |
-| 认证 | NextAuth v4 (Google OAuth) |
-| 数据库 | MongoDB (Mongoose) |
+| 认证 | 自建后端 JWT（`Authorization: Bearer`）+ 用户名密码 / 微信扫码 / Google OAuth |
+| 后端 | `D:/github/pindou/server`（Express + MySQL 8 + 阿里云 OSS，独立仓库） |
 | 打包 | JSZip |
-| 校验 | Zod v4 |
 
 ## 目录结构
 
@@ -28,18 +27,16 @@ src/
 │   │   ├── layout.tsx            # 根布局（html lang + i18n Provider + 认证）
 │   │   ├── page.tsx              # 首页着陆页
 │   │   ├── not-found.tsx         # 本地化 404
-│   │   ├── (auth)/login/         # 登录页
+│   │   ├── (auth)/login/         # 登录页（用户名密码 / 微信扫码 / Google）
+│   │   ├── (auth)/register/      # 注册页（用户名 + 昵称 + 密码）
+│   │   ├── (auth)/auth/callback/ # OAuth 回调（#ticket → JWT）
 │   │   ├── admin/tags/           # 管理员标签管理
 │   │   ├── create/               # 创建图案（模式选择 → 上传/裁剪/配置 → 涂色编辑器）
 │   │   ├── gallery/              # 公共画廊
 │   │   ├── my-patterns/          # 我的图案
 │   │   └── patterns/[id]/        # 图案详情
-│   ├── globals.css               # Tailwind v4 主题 + 全局样式
-│   └── api/                      # API 路由（不参与本地化）
-│       ├── auth/[...nextauth]/   # NextAuth 认证
-│       ├── diagrams/             # 图案 CRUD
-│       ├── tags/                 # 标签 CRUD
-│       └── upload/               # 上传占位（未完整实现）
+│   └── globals.css               # Tailwind v4 主题 + 全局样式
+│                                 # 注意：没有 src/app/api —— 后端在独立仓库
 ├── components/
 │   ├── layout/                   # Header, AuthGuard, LanguageSwitcher
 │   ├── gallery/                  # GalleryCard
@@ -49,10 +46,10 @@ src/
 │   ├── upload/                   # ImageUploader, CropPreview, GridConfig, PublishForm
 │   └── ui/                       # Button, Card, Modal, Spinner
 ├── hooks/                        # useCanvas
-├── lib/                          # auth.ts, validations.ts, db/
-├── providers/                    # AuthProvider, QueryProvider
-├── services/                     # diagramService.ts (React Query hooks)
-├── types/                        # bead.ts, diagram.ts, api.ts
+├── lib/                          # api-client.ts（fetch + 401）、auth-client.ts、oss-upload.ts
+├── providers/                    # AuthProvider（useAuth/useSession）、QueryProvider
+├── services/                     # diagramService.ts（action 分发 hooks）、normalize.ts
+├── types/                        # bead.ts, diagram.ts, api.ts, auth.ts
 └── utils/                        # 核心算法
     ├── beadColors.ts             # MARD 珠子调色板（实际 221 色，A01-M15）+ 颜色匹配
     ├── canvasTheme.ts            # 屏幕内 canvas 绘制色板（与主题令牌手动同步）+ getLuminance
@@ -107,7 +104,7 @@ src/
 - 页面组件：client 用 `useTranslations('ns')`；server 组件（如 `[locale]/page.tsx`、layout）用 `await getTranslations('ns')`，且须先 `setRequestLocale(locale)`
 - 带插值的键用 `{param}`；英文复数用 ICU plural，中文只用 `other`；需要给数字加样式的用 `t.rich(..., { b: (chunks) => <span>…</span> })`
 - **导航必须用 `@/i18n/navigation` 的 `Link` / `useRouter` / `usePathname`**（自动加 locale 前缀；i18n 的 usePathname 返回无前缀路径）；不要 import `next/link` / `next/navigation`
-- 不要翻译：珠子色号（A01…）、品牌名、canvas 绘制文字、sort 选项 value（`newest/popular/colors`）、API 错误文案（API 路由不参与本地化）
+- 不要翻译：珠子色号（A01…）、品牌名、canvas 绘制文字、sort 选项 value（`newest/popular/colors`）、后端错误码（`content_risky` 等，由页面映射成字典文案）
 - 语言切换器 `src/components/layout/LanguageSwitcher.tsx` 已内置在 Header，无需重复实现
 - 新增语言：更新 `src/i18n/routing.ts` 的 locales、`messages/<lang>.json`、`[locale]/layout.tsx` 的 generateStaticParams
 
@@ -166,9 +163,13 @@ grep -rnE '#ff8fa3|#e5e7eb|#e9e9e9' src/ --include="*.tsx"
 
 ## 关键架构决策
 
-1. **NextAuth v4 + Google OAuth** — 唯一认证方式，无邮箱密码注册
-2. **MongoDB + Mongoose** — 4 个模型：Diagram, MyDiagram, Favorite, Tag
-3. **React Query** — 所有 API 请求通过 `src/services/diagramService.ts` 的 hooks
+1. **后端完全外置**：数据/登录/上传全在 `D:/github/pindou/server`（Express + MySQL + OSS），
+   本仓库没有任何 API Route 或数据库代码。请求统一走 `src/lib/api-client.ts`
+2. **JWT + Bearer**：token 存 `localStorage['pindou.auth.token']`，401 全局登出；
+   微信扫码/OAuth 由后端完成，前端只处理 `#ticket` 兑换
+3. **React Query**：所有 API 请求通过 `src/services/diagramService.ts` 的 hooks；
+   服务端字段（`title/fileURL/...`）只在 `src/services/normalize.ts` 里翻译成页面模型
 4. **图像处理管线**：上传 → 裁剪 → 双线性缩放 → CIEDE2000 颜色匹配 → 渲染
-5. **图案导出**：PNG 直接渲染、ZIP 包含 pattern.json
-6. **三种创建模式统一进 PatternEditor**：上传转换 / 底图涂色（空网格描图或自动转换打底）/ 空白画布，均以 `pixels: number[][]` 为唯一数据形态，编辑器经 `onPixelsChange` 在笔画/填充/撤销等操作后上抛
+5. **图案导出**：PNG 直接渲染、ZIP 包含 pattern.json；发布时 ZIP/缩略图直传 OSS
+6. **后端不存像素**：详情页/`?load=` 编辑器按 `zipUrl` 取 ZIP，`cellsToPixels` 还原网格
+7. **三种创建模式统一进 PatternEditor**：上传转换 / 底图涂色（空网格描图或自动转换打底）/ 空白画布，均以 `pixels: number[][]` 为唯一数据形态，编辑器经 `onPixelsChange` 在笔画/填充/撤销等操作后上抛

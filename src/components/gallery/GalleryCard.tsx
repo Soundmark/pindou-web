@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession } from "@/providers/AuthProvider";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 

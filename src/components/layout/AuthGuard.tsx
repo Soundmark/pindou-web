@@ -1,19 +1,20 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useRouter } from "@/i18n/navigation";
+import { useAuth } from "@/providers/AuthProvider";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { useEffect } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { session, status } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`);
     }
-  }, [status, router]);
+  }, [status, pathname, router]);
 
   if (status === "loading") {
     return (

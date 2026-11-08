@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "@/providers/AuthProvider";
 import { useRouter } from "@/i18n/navigation";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { CropPreview } from "@/components/upload/CropPreview";
@@ -12,17 +12,31 @@ import { ModeSelector, type CreateMode } from "@/components/create/ModeSelector"
 import { ColorLegend } from "@/components/pattern/ColorLegend";
 import { PublishForm, type PublishPayload } from "@/components/upload/PublishForm";
 import { Button } from "@/components/ui/Button";
-import { useCreateDiagram } from "@/services/diagramService";
-import { buildPatternZip } from "@/utils/patternZip";
-import { createPatternThumbnailBlob, dataUrlToBlob, downloadPatternPng, uploadImageToR2 } from "@/utils/imageExport";
+import { useCreateDiagram, useDiagram, useSaveMyDiagram } from "@/services/diagramService";
+import {
+  buildPatternZip,
+  cellsToPixels,
+  loadPatternFromZip,
+  pixelsToCells,
+} from "@/utils/patternZip";
+import { createPatternThumbnailBlob, downloadPatternPng } from "@/utils/imageExport";
+import { uploadToOss } from "@/lib/oss-upload";
+import { ApiError } from "@/lib/api-client";
 import { convertImageToGrid, loadImageData } from "@/utils/imageToGrid";
-import { BEAD_PALETTE } from "@/utils/beadColors";
 import { countBeads, countColors, createEmptyGrid } from "@/utils/pixelGrid";
 import { useFullscreenMode } from "@/hooks/useFullscreenMode";
 import { CollapseIcon } from "@/components/editor/icons";
 
 type Step = "mode" | "upload" | "crop" | "configure" | "editor";
 type UnderlayStartMode = "empty" | "converted";
+
+const DRAFT_KEY = "pindou:create-draft";
+
+interface DraftPayload {
+  pixels: number[][];
+  gridWidth: number;
+  gridHeight: number;
+}
 
 const MODE_STEPS: Record<CreateMode, Step[]> = {
   convert: ["mode", "upload", "crop", "configure", "editor"],
@@ -48,10 +62,65 @@ export default function CreatePage() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(false);
 
   const { status } = useSession();
   const router = useRouter();
   const createDiagram = useCreateDiagram();
+  const saveMyDiagram = useSaveMyDiagram();
+
+  // `/create?load=<id>`：把已有图纸（ZIP）载入编辑器继续编辑
+  const [loadId, setLoadId] = useState("");
+  const { data: loadedDiagram } = useDiagram(loadId);
+  const loadApplied = useRef(false);
+
+  useEffect(() => {
+    if (!loadId || !loadedDiagram?.data || loadApplied.current) return;
+    loadApplied.current = true;
+    const diagram = loadedDiagram.data;
+    void (async () => {
+      if (!diagram.zipUrl) return;
+      try {
+        const res = await fetch(diagram.zipUrl);
+        if (!res.ok) return;
+        const pattern = await loadPatternFromZip(await res.arrayBuffer());
+        setGridWidth(pattern.width);
+        setGridHeight(pattern.height);
+        setPixels(cellsToPixels(pattern.cells, pattern.width, pattern.height));
+        setMode("blank");
+        setStep("editor");
+      } catch {
+        // 解析失败保持当前状态，用户可重新上传
+      }
+    })();
+  }, [loadId, loadedDiagram]);
+
+  // 一次性初始化：?load= 优先；否则恢复登录跳转前暂存的图案。
+  // 放进微任务里，避免在 effect 同步阶段连续 setState 触发级联渲染。
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("load");
+    queueMicrotask(() => {
+      if (id) {
+        setLoadId(id);
+        return;
+      }
+      try {
+        const raw = window.sessionStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        window.sessionStorage.removeItem(DRAFT_KEY);
+        const draft = JSON.parse(raw) as DraftPayload;
+        if (!Array.isArray(draft?.pixels) || draft.pixels.length === 0) return;
+        setPixels(draft.pixels);
+        setGridWidth(draft.gridWidth);
+        setGridHeight(draft.gridHeight);
+        setMode("blank");
+        setStep("editor");
+      } catch {
+        // 草稿损坏或存储不可用：静默忽略
+      }
+    });
+  }, []);
   const {
     active: isFullscreen,
     toggle: toggleFullscreen,
@@ -107,18 +176,7 @@ export default function CreatePage() {
 
   const handleExportZip = async () => {
     if (pixels.length === 0 || isProcessing) return;
-    const cells = [];
-    for (let y = 0; y < pixels.length; y++) {
-      for (let x = 0; x < pixels[y].length; x++) {
-        const colorId = pixels[y][x];
-        if (colorId < 0) continue; // 空格子不入 ZIP
-        const color = BEAD_PALETTE[colorId];
-        if (color) {
-          cells.push({ x, y, color });
-        }
-      }
-    }
-    const blob = await buildPatternZip(cells, gridWidth, gridHeight, "MARD");
+    const blob = await buildPatternZip(pixelsToCells(pixels), gridWidth, gridHeight, "MARD");
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -146,16 +204,58 @@ export default function CreatePage() {
     setPublishError(null);
   };
 
-  const handlePublishClick = async () => {
+  /** 未登录时把图案暂存到 sessionStorage，登录回来（returnTo=/create）再恢复 */
+  const stashDraftAndLogin = () => {
+    try {
+      const payload: DraftPayload = { pixels, gridWidth, gridHeight };
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+    } catch {
+      // 超出配额/隐私模式：只能放弃暂存
+    }
+    router.push(`/login?returnTo=${encodeURIComponent("/create")}`);
+  };
+
+  const handlePublishClick = () => {
     if (status === "authenticated") {
       setPublishOpen(true);
       return;
     }
-    // Popup login flow to preserve in-progress pattern (no full page redirect)
-    const result = await signIn("google", { redirect: false });
-    if (result && !result.error) {
-      setPublishOpen(true);
+    stashDraftAndLogin();
+  };
+
+  /**
+   * 上传 ZIP + 缩略图到 OSS，再调 publish / saveMy。
+   * 服务端不存像素，图纸内容全在 pattern.json 里。
+   */
+  const uploadPattern = async () => {
+    const zipBlob = await buildPatternZip(
+      pixelsToCells(pixels),
+      gridWidth,
+      gridHeight,
+      "MARD"
+    );
+    const thumbnailBlob = await createPatternThumbnailBlob(pixels);
+
+    const zip = await uploadToOss(
+      new File([zipBlob], "pattern.zip", { type: "application/zip" }),
+      "diagrams"
+    );
+    const thumbnail = await uploadToOss(
+      new File([thumbnailBlob], "pattern-thumbnail.png", { type: "image/png" }),
+      "diagrams"
+    );
+    return { zip, thumbnail };
+  };
+
+  const errorText = (e: unknown, fallback: string) => {
+    if (e instanceof ApiError) {
+      if (e.code === "content_risky") return t("errors.contentRisky");
+      if (e.code === "image_risky") return t("errors.imageRisky");
+      if (e.code === "unauthorized") return t("errors.unauthorized");
+      if (e.code === "network_error" || e.code === "upload_failed") return t("errors.uploadFailed");
     }
+    if (e instanceof Error && e.message === "upload_failed") return t("errors.uploadFailed");
+    return fallback;
   };
 
   const handlePublish = async (payload: PublishPayload) => {
@@ -163,37 +263,48 @@ export default function CreatePage() {
     setPublishing(true);
     setPublishError(null);
     try {
-      // 空白模式没有源图：用生成的图案渲染图占位 imageUrl
-      const savedImageUrl = croppedImageDataUrl
-        ? await uploadImageToR2(await dataUrlToBlob(croppedImageDataUrl), "image/png", "pattern.png")
-        : await uploadImageToR2(
-            await createPatternThumbnailBlob(pixels, 1024),
-            "image/png",
-            "pattern.png"
-          );
-      const thumbnailBlob = await createPatternThumbnailBlob(pixels);
-      const thumbnailUrl = await uploadImageToR2(thumbnailBlob, "image/png", "pattern-thumbnail.png");
-
+      const { zip, thumbnail } = await uploadPattern();
       const res = await createDiagram.mutateAsync({
-        name: payload.name,
-        description: payload.description,
-        imageUrl: savedImageUrl,
-        thumbnailUrl,
+        fileID: zip.key,
+        thumbnailFileID: thumbnail.key,
+        title: payload.name,
         width: gridWidth,
         height: gridHeight,
-        pixels,
-        brand: "MARD",
-        tags: payload.tags,
+        cellCount: beadTotal,
         colorCount,
-        isPublic: payload.isPublic,
+        colorSystem: "MARD",
+        tags: payload.tags,
       });
-
-      const id = res?.data?._id;
-      if (!id) throw new Error("Missing diagram id");
       setPublishOpen(false);
-      router.push(`/patterns/${id}`);
-    } catch {
-      setPublishError(t("publishFailed"));
+      router.push(`/patterns/${res.id}`);
+    } catch (e) {
+      setPublishError(errorText(e, t("publishFailed")));
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleSaveDraft = async (payload: PublishPayload) => {
+    if (pixels.length === 0 || isProcessing) return;
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const { zip, thumbnail } = await uploadPattern();
+      await saveMyDiagram.mutateAsync({
+        fileID: zip.key,
+        thumbnailFileID: thumbnail.key,
+        title: payload.name,
+        width: gridWidth,
+        height: gridHeight,
+        cellCount: beadTotal,
+        colorCount,
+        colorSystem: "MARD",
+      });
+      setPublishOpen(false);
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2500);
+    } catch (e) {
+      setPublishError(errorText(e, t("saveFailed")));
     } finally {
       setPublishing(false);
     }
@@ -365,12 +476,21 @@ export default function CreatePage() {
               {t("startOver")}
             </Button>
           </div>
+          {draftSaved && (
+            <p
+              role="status"
+              className="rounded-full border-[3px] border-green-candy bg-green-candy/25 px-5 py-2 text-sm font-semibold text-gray-700"
+            >
+              {t("draftSaved")}
+            </p>
+          )}
           <PublishForm
             open={publishOpen}
             submitting={publishing}
             error={publishError}
             onClose={() => setPublishOpen(false)}
             onSubmit={handlePublish}
+            onSaveDraft={status === "authenticated" ? handleSaveDraft : undefined}
           />
         </div>
       )}
