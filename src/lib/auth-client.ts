@@ -14,6 +14,8 @@ import type {
   OAuthProvider,
   PasswordAuthResult,
   SessionLike,
+  WechatQrCreateResult,
+  WechatQrStatusResult,
 } from "@/types/auth";
 
 const MAX_RETURN_TO = 200;
@@ -53,6 +55,29 @@ export function signOut() {
 
 export function fetchProviders() {
   return apiFetch<AuthProviders>("/auth/providers", { auth: false });
+}
+
+/**
+ * 扫码登录第一步：要一张 scene=ticket 的小程序码。
+ * 失败抛 ApiError，`code` 为 `not_configured` / `wx_qr_failed` / `rate_limited`。
+ */
+export function createWechatQr() {
+  return apiFetch<WechatQrCreateResult>("/auth/wechat/qr/create", {
+    method: "POST",
+    body: {},
+    auth: false,
+  });
+}
+
+/**
+ * 扫码登录轮询。接口恒返回 success:true（pending/confirmed/expired 在 body 里），
+ * 不抛业务错误；confirmed 的 token 已在响应里，由调用方 setToken。
+ */
+export function fetchWechatQrStatus(ticket: string) {
+  return apiFetch<WechatQrStatusResult>(
+    `/auth/wechat/qr/status?ticket=${encodeURIComponent(ticket)}`,
+    { auth: false }
+  );
 }
 
 export function fetchMe() {

@@ -3,23 +3,28 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
-import { Fredoka, Nunito } from "next/font/google";
+import localFont from "next/font/local";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Header } from "@/components/layout/Header";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
-const fredoka = Fredoka({
-  subsets: ["latin"],
+// 自托管可变字体（OFL 许可，来源 @fontsource-variable 5.3.0）。
+// 之前用 next/font/google 时每次冷构建都要连 fonts.googleapis.com，
+// 在国内网络上是构建失败的常客；改 local 后构建零外网依赖。
+const fredoka = localFont({
+  src: "../../fonts/fredoka-latin-wght-normal.woff2",
   variable: "--font-fredoka",
   display: "swap",
+  weight: "300 700",
 });
 
-const nunito = Nunito({
-  subsets: ["latin"],
+const nunito = localFont({
+  src: "../../fonts/nunito-latin-wght-normal.woff2",
   variable: "--font-nunito",
   display: "swap",
+  weight: "200 1000",
 });
 
 export function generateStaticParams() {

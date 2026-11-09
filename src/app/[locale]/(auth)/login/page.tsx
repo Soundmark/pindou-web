@@ -10,8 +10,10 @@ import { fetchProviders, loginWithPassword, normalizeReturnTo, signIn } from "@/
 import { ApiError } from "@/lib/api-client";
 import type { AuthProviders } from "@/types/auth";
 import { AuthAlert, AuthField } from "@/components/auth/AuthForm";
+import { WechatQrLogin } from "@/components/auth/WechatQrLogin";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
 
 export default function LoginPage() {
@@ -46,6 +48,7 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   // 已登录直接回去，不要让用户再点一次
   useEffect(() => {
@@ -147,7 +150,14 @@ function LoginContent() {
             className="w-full"
             size="lg"
             disabled={checking || !wechatEnabled}
-            onClick={() => signIn("wechat", { returnTo })}
+            onClick={() => {
+              // 默认走小程序码扫码弹窗；仅当后端只配了开放平台（无小程序凭据）才走旧跳转
+              if (providers?.wechatMode === "oauth") {
+                signIn("wechat", { returnTo });
+              } else {
+                setQrOpen(true);
+              }
+            }}
             title={!checking && !wechatEnabled ? t("providerUnavailable") : undefined}
           >
             <MessageCircle className="mr-2 h-5 w-5" aria-hidden />
@@ -188,6 +198,10 @@ function LoginContent() {
 
         <p className="mt-4 text-xs text-text-muted">{t("terms")}</p>
       </Card>
+
+      <Modal open={qrOpen} onClose={() => setQrOpen(false)} title={t("qrTitle")}>
+        <WechatQrLogin returnTo={returnTo} />
+      </Modal>
     </div>
   );
 }
@@ -209,6 +223,7 @@ function errorMessage(t: ReturnType<typeof useTranslations>, code: string): stri
     "invalid_password",
     "username_taken",
     "rate_limited",
+    "wx_qr_failed",
     "network_error",
   ];
   const key = known.includes(code) ? `errors.${code}` : "errors.generic";

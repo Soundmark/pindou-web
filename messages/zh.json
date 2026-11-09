@@ -60,6 +60,13 @@
     "noAccount": "还没有账号？",
     "signInLink": "去登录",
     "noPasswordRecovery": "目前没有找回密码功能，请妥善保管你的密码。",
+    "qrTitle": "微信扫码登录",
+    "qrScanTip": "请用微信扫一扫，并在小程序里点「确认登录」",
+    "qrLoading": "二维码生成中…",
+    "qrExpired": "二维码已过期，请刷新",
+    "qrRefresh": "刷新二维码",
+    "qrFailed": "二维码加载失败，请重试",
+    "qrSuccess": "已确认，正在登录…",
     "errors": {
       "not_configured": "该登录方式尚未配置",
       "invalid_state": "登录请求已过期，请重试",
@@ -77,6 +84,7 @@
       "invalid_password": "密码需为 8–72 个字符",
       "username_taken": "该用户名已被占用",
       "rate_limited": "尝试过于频繁，请稍后再试",
+      "wx_qr_failed": "二维码获取失败，请重试",
       "generic": "出了点问题，请重试"
     }
   },

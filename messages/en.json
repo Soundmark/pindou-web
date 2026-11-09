@@ -60,6 +60,13 @@
     "noAccount": "Don't have an account?",
     "signInLink": "Sign in",
     "noPasswordRecovery": "There is no password recovery yet — please keep your password safe.",
+    "qrTitle": "Scan with WeChat",
+    "qrScanTip": "Scan with WeChat, then tap Confirm in the mini program to sign in",
+    "qrLoading": "Generating QR code…",
+    "qrExpired": "QR code expired. Please refresh.",
+    "qrRefresh": "Refresh QR code",
+    "qrFailed": "Couldn't load the QR code. Please try again.",
+    "qrSuccess": "Confirmed! Signing you in…",
     "errors": {
       "not_configured": "This sign-in method is not configured yet.",
       "invalid_state": "The sign-in request expired. Please try again.",
@@ -77,6 +84,7 @@
       "invalid_password": "Password must be 8–72 characters.",
       "username_taken": "That username is already taken.",
       "rate_limited": "Too many attempts. Please try again later.",
+      "wx_qr_failed": "Couldn't load the QR code. Please try again.",
       "generic": "Something went wrong. Please try again."
     }
   },
