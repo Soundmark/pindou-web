@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:cloud": "node scripts/dev.mjs cloud",
+    "dev:local": "node scripts/dev.mjs local",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

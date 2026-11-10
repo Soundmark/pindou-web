@@ -33,6 +33,18 @@ pnpm install
 pnpm dev             # http://localhost:3000
 ```
 
+如果本机没有 MySQL / 不想起本地后端，可以用启动脚本直接选后端：
+
+```bash
+pnpm dev             # 交互选择：云端 / 本地 / 自定义地址
+pnpm dev:cloud       # 直连云端 https://fittingprogress.top/pindou
+pnpm dev:local       # 直连本地 http://127.0.0.1:3100
+```
+
+> 切换后端必须重启 dev（`NEXT_PUBLIC_*` 在启动时内联）。脚本启动前会探测
+> `/auth/providers`，直接告诉你微信扫码登录是否可用。
+> ⚠️ 云端是生产环境：创建 / 发布图纸会写入线上数据。
+
 ### 3. 没有微信 / Google 凭据时怎么登录
 
 用服务端现成的 H5 设备登录拿 token：
