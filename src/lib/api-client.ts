@@ -118,8 +118,13 @@ export async function apiFetch<T = Record<string, unknown>>(
     res = await fetch(url, { method, headers: finalHeaders, body: payload, signal });
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") throw e;
-    throw new ApiError("network_error", "网络请求失败，请检查网络或后端服务");
+        throw new ApiError("network_error", "网络请求失败，请检查网络或后端服务");
   }
+
+  // 滑动续期：签发过半的合法 token 会随响应带一枚新 token，静默替换本地凭证。
+  // 放在 401 分支之前：中间件先 set 头再 next()，业务非 2xx 的响应也不丢续期。
+  const refreshed = res.headers.get("X-Refreshed-Token"); // Fetch 规范：大小写不敏感
+  if (refreshed) setToken(refreshed);
 
   if (res.status === 401) {
     clearToken();
