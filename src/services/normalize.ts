@@ -7,6 +7,17 @@
  */
 import type { DiagramItem, MyDiagramItem, TagItem } from "@/types/diagram";
 import type { ServerDiagram, ServerTag } from "@/types/api";
+import { getApiBase } from "@/lib/api-client";
+
+/**
+ * 图案 ZIP 走后端流式代理，而不是直连 OSS。
+ * OSS bucket 没开 CORS，浏览器 fetch 直链会被拦截；后端代理还顺带把草稿
+ * 的读取权限收回服务端（草稿仅作者本人可读）。无 fileID 时回退旧直链。
+ */
+function patternFileUrl(fileID: string | undefined, fallback: string): string {
+  if (!fileID) return fallback;
+  return `${getApiBase()}/api/diagram/file?key=${encodeURIComponent(fileID)}`;
+}
 
 /** 毫秒时间戳 → ISO 字符串；null/0 兜底为空串 */
 function toIso(ms: number | null | undefined): string {
@@ -37,7 +48,7 @@ export function toDiagramItem(d: ServerDiagram): DiagramItem {
     favoriteCount: d.favoriteCount,
     createdAt: toIso(d.createdAt),
     updatedAt: toIso(d.updatedAt || d.createdAt),
-    zipUrl: d.fileURL || "",
+    zipUrl: patternFileUrl(d.fileID, d.fileURL || ""),
     fileID: d.fileID,
     thumbnailFileID: d.thumbnailFileID,
     isOwner: d.isOwner,

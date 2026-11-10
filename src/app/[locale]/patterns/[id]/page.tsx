@@ -36,8 +36,9 @@ export default function PatternDetailPage({
   const { data, isLoading, error } = useDiagram(id);
 
   const [highlightedColor, setHighlightedColor] = useState<number | null>(null);
-  const [pixels, setPixels] = useState<number[][]>([]);
-  const [patternState, setPatternState] = useState<PatternLoadState>("idle");
+  // 结果带 key：只有和当前 zipUrl 匹配的像素才渲染，切换图纸时旧结果自动失效
+  const [pattern, setPattern] = useState<{ key: string; pixels: number[][] } | null>(null);
+  const [failedKey, setFailedKey] = useState("");
 
   const favorited = useCheckFavorited(id).data ?? false;
   const favorite = useFavorite();
@@ -51,28 +52,39 @@ export default function PatternDetailPage({
   } = useFullscreenMode();
 
   const diagram = data?.data;
+  const zipUrl = diagram?.zipUrl || "";
 
-  // 后端不存像素：按 DTO 里的 ZIP 地址取回 pattern.json 再还原网格
+  const pixels = pattern && pattern.key === zipUrl ? pattern.pixels : [];
+  let patternState: PatternLoadState = "loading";
+  if (!zipUrl) patternState = "idle";
+  else if (pixels.length > 0) patternState = "ready";
+  else if (failedKey === zipUrl) patternState = "failed";
+
+  // 后端不存像素：按 DTO 里的 ZIP 地址取回 pattern.json 再还原网格。
+  // 依赖只能是稳定的 zipUrl：若把加载状态放进依赖，effect 会被自己的 setState
+  // 反复清理，cancelled=true 后异步结果被丢弃，页面永远停在 loading。
   useEffect(() => {
-    if (!diagram?.zipUrl || patternState !== "idle") return;
+    if (!zipUrl) return;
     let cancelled = false;
     void (async () => {
-      setPatternState("loading");
       try {
-        const res = await fetch(diagram.zipUrl);
+        const res = await fetch(zipUrl);
         if (!res.ok) throw new Error("pattern fetch failed");
-        const pattern = await loadPatternFromZip(await res.arrayBuffer());
+        const loaded = await loadPatternFromZip(await res.arrayBuffer());
         if (cancelled) return;
-        setPixels(cellsToPixels(pattern.cells, pattern.width, pattern.height));
-        setPatternState("ready");
+        setPattern({
+          key: zipUrl,
+          pixels: cellsToPixels(loaded.cells, loaded.width, loaded.height),
+        });
+        setFailedKey("");
       } catch {
-        if (!cancelled) setPatternState("failed");
+        if (!cancelled) setFailedKey(zipUrl);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [diagram, patternState]);
+  }, [zipUrl]);
 
   if (isLoading) {
     return (
