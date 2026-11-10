@@ -44,7 +44,7 @@ export function GalleryCard({
             src={thumbnailUrl}
             alt={name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            className="h-full w-full object-contain"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-gray-400">
