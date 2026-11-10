@@ -39,6 +39,9 @@ export interface WechatQrCreateResult {
   expiresIn: number;
 }
 
+/** 小程序码打开的版本；后端接受白名单内的值，不传时用服务端配置（默认 release） */
+export type WechatQrEnvVersion = "release" | "trial" | "develop";
+
 export type WechatQrStatus = "pending" | "confirmed" | "expired";
 
 /** 扫码登录轮询：confirmed 时一次性返回 token + 用户信息（与 ExchangeResult 同形，无 returnTo） */

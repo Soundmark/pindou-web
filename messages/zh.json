@@ -19,6 +19,7 @@
     "navMyPatterns": "我的图案",
     "navAdminTags": "标签管理",
     "openMenu": "打开菜单",
+    "editProfile": "点击编辑昵称",
     "switchTo": "EN",
     "switchAria": "切换到 English"
   },
@@ -67,6 +68,12 @@
     "qrRefresh": "刷新二维码",
     "qrFailed": "二维码加载失败，请重试",
     "qrSuccess": "已确认，正在登录…",
+    "qrEnvLabel": "小程序码版本",
+    "qrEnvRelease": "正式版",
+    "qrEnvTrial": "体验版",
+    "qrEnvDevelop": "开发版",
+    "profileTitle": "编辑昵称",
+    "profileSaving": "保存中…",
     "errors": {
       "not_configured": "该登录方式尚未配置",
       "invalid_state": "登录请求已过期，请重试",

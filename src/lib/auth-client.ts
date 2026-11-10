@@ -15,6 +15,7 @@ import type {
   PasswordAuthResult,
   SessionLike,
   WechatQrCreateResult,
+  WechatQrEnvVersion,
   WechatQrStatusResult,
 } from "@/types/auth";
 
@@ -60,11 +61,13 @@ export function fetchProviders() {
 /**
  * 扫码登录第一步：要一张 scene=ticket 的小程序码。
  * 失败抛 ApiError，`code` 为 `not_configured` / `wx_qr_failed` / `rate_limited`。
+ * envVersion 仅开发构建的前端会发送（选择器仅开发构建渲染，生产产物编译期消除），
+ * 普通用户恒走服务端配置（默认 release）。
  */
-export function createWechatQr() {
+export function createWechatQr(envVersion?: WechatQrEnvVersion) {
   return apiFetch<WechatQrCreateResult>("/auth/wechat/qr/create", {
     method: "POST",
-    body: {},
+    body: envVersion ? { envVersion } : {},
     auth: false,
   });
 }
@@ -136,10 +139,24 @@ export function toSession(user: AuthUser): SessionLike {
   return {
     user: {
       id: user.uid,
-      name: user.nickname || user.uid,
+      // 空昵称（历史微信用户）不露 uid 长串，用与服务端同一推导的短名兜底
+      name: user.nickname || defaultNickname(user.uid),
       image: user.avatarUrl || undefined,
       isAdmin: user.isAdmin,
       platform: user.platform,
     },
   };
+}
+
+/** 无昵称用户的确定性显示名；与后端 services/user.js 的 defaultNickname 同一推导 */
+export function defaultNickname(uid: string): string {
+  return `用户${uid.slice(-4)}`;
+}
+
+/** 修改昵称。失败抛 ApiError，`code` 为 `invalid_nickname` / `rate_limited` / `network_error` */
+export function updateProfile(input: { nickname: string }) {
+  return apiFetch<AuthUser & { success: true }>("/auth/profile", {
+    method: "POST",
+    body: input,
+  });
 }

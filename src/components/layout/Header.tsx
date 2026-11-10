@@ -7,6 +7,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { ProfileEditor } from "@/components/auth/ProfileEditor";
 
 export function Header() {
   const { session, user, signOut } = useAuth();
@@ -15,6 +16,7 @@ export function Header() {
   const t = useTranslations("header");
   const tc = useTranslations("common");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -66,16 +68,24 @@ export function Header() {
         <div className="flex items-center gap-3">
           {session ? (
             <div className="flex items-center gap-3">
-              {session.user?.image && (
-                <img
-                  src={session.user.image}
-                  alt=""
-                  className="h-7 w-7 rounded-full"
-                />
-              )}
-              <span className="hidden text-sm text-text-secondary sm:inline">
-                {session.user?.name}
-              </span>
+              <button
+                type="button"
+                onClick={() => setProfileOpen(true)}
+                aria-label={t("editProfile")}
+                title={t("editProfile")}
+                className="hidden h-11 items-center gap-2 rounded-full px-2 text-sm text-text-secondary transition-colors hover:text-text-primary sm:inline-flex"
+              >
+                {session.user?.image && (
+                  <img
+                    src={session.user.image}
+                    alt=""
+                    className="h-7 w-7 rounded-full"
+                  />
+                )}
+                <span className="max-w-[160px] truncate underline-offset-4 hover:underline">
+                  {session.user?.name}
+                </span>
+              </button>
               <Button
                 onClick={handleSignOut}
                 variant="secondary"
@@ -139,7 +149,14 @@ export function Header() {
           {session ? (
             <>
               <hr className="my-2 border-gray-100" />
-              <div className="flex items-center gap-3 px-4 py-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setProfileOpen(true);
+                }}
+                className="flex items-center gap-3 rounded-2xl px-4 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-gray-100 hover:text-text-primary"
+              >
                 {session.user?.image && (
                   <img
                     src={session.user.image}
@@ -147,10 +164,8 @@ export function Header() {
                     className="h-8 w-8 rounded-full"
                   />
                 )}
-                <span className="text-sm text-text-secondary">
-                  {session.user?.name}
-                </span>
-              </div>
+                <span className="truncate">{session.user?.name}</span>
+              </button>
               <Button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -175,6 +190,8 @@ export function Header() {
           )}
         </div>
       </Modal>
+
+      <ProfileEditor open={profileOpen} onClose={() => setProfileOpen(false)} />
     </header>
   );
 }
