@@ -33,6 +33,19 @@ function tagAction<T>(body: DiagramActionBody) {
   return apiFetch<T>(TAG_API, { method: "POST", body });
 }
 
+/**
+ * 取图案 ZIP 的短时效签名 URL（浏览器直读 OSS）。
+ *
+ * 后端 `OSS_DIRECT_READ=false` 时返回 503，调用方应回退服务端代理
+ * （`/api/diagram/file`）。签名接口自带按 IP 限流。
+ */
+export function fetchDiagramFileUrl(fileID: string) {
+  return apiFetch<{ success: true; url: string; expiresAt: number }>(
+    `/api/diagram/url?key=${encodeURIComponent(fileID)}`,
+    { method: "GET" }
+  );
+}
+
 function toPagination(page: number, limit: number, total: number) {
   return { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
 }

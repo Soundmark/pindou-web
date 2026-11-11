@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
 import { downloadPatternPng } from "@/utils/imageExport";
 import { cellsToPixels, loadPatternFromZip } from "@/utils/patternZip";
+import { fetchPatternZip } from "@/utils/patternFetch";
 import { useFullscreenMode } from "@/hooks/useFullscreenMode";
 import { CollapseIcon } from "@/components/editor/icons";
 import { useAuth } from "@/providers/AuthProvider";
@@ -53,6 +54,7 @@ export default function PatternDetailPage({
 
   const diagram = data?.data;
   const zipUrl = diagram?.zipUrl || "";
+  const fileID = diagram?.fileID || "";
 
   const pixels = pattern && pattern.key === zipUrl ? pattern.pixels : [];
   let patternState: PatternLoadState = "loading";
@@ -61,16 +63,16 @@ export default function PatternDetailPage({
   else if (failedKey === zipUrl) patternState = "failed";
 
   // 后端不存像素：按 DTO 里的 ZIP 地址取回 pattern.json 再还原网格。
-  // 依赖只能是稳定的 zipUrl：若把加载状态放进依赖，effect 会被自己的 setState
-  // 反复清理，cancelled=true 后异步结果被丢弃，页面永远停在 loading。
+  // 优先走签名 URL 直读 OSS，失败自动回退服务端代理（见 fetchPatternZip）。
+  // 依赖只能是稳定的 zipUrl/fileID：若把加载状态放进依赖，effect 会被自己的
+  // setState 反复清理，cancelled=true 后异步结果被丢弃，页面永远停在 loading。
   useEffect(() => {
     if (!zipUrl) return;
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(zipUrl);
-        if (!res.ok) throw new Error("pattern fetch failed");
-        const loaded = await loadPatternFromZip(await res.arrayBuffer());
+        const buffer = await fetchPatternZip(fileID, zipUrl);
+        const loaded = await loadPatternFromZip(buffer);
         if (cancelled) return;
         setPattern({
           key: zipUrl,
@@ -84,7 +86,7 @@ export default function PatternDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [zipUrl]);
+  }, [zipUrl, fileID]);
 
   if (isLoading) {
     return (

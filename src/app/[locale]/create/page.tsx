@@ -19,6 +19,7 @@ import {
   loadPatternFromZip,
   pixelsToCells,
 } from "@/utils/patternZip";
+import { fetchPatternZip } from "@/utils/patternFetch";
 import { createPatternThumbnailBlob, downloadPatternPng } from "@/utils/imageExport";
 import { uploadToOss } from "@/lib/oss-upload";
 import { ApiError } from "@/lib/api-client";
@@ -81,9 +82,8 @@ export default function CreatePage() {
     void (async () => {
       if (!diagram.zipUrl) return;
       try {
-        const res = await fetch(diagram.zipUrl);
-        if (!res.ok) return;
-        const pattern = await loadPatternFromZip(await res.arrayBuffer());
+        const buffer = await fetchPatternZip(diagram.fileID, diagram.zipUrl);
+        const pattern = await loadPatternFromZip(buffer);
         setGridWidth(pattern.width);
         setGridHeight(pattern.height);
         setPixels(cellsToPixels(pattern.cells, pattern.width, pattern.height));
