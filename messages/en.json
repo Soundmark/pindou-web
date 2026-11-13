@@ -34,6 +34,8 @@
     "welcome": "Welcome to Pindou",
     "subtitle": "Sign in to create, save, and share bead patterns",
     "wechatSignIn": "Sign in with WeChat",
+    "wechatOpening": "Opening WeChat…",
+    "wechatPendingHint": "Confirm sign-in in the mini program, then return here.",
     "googleSignIn": "Sign in with Google",
     "providerUnavailable": "This sign-in method is not available yet",
     "providersFailed": "Could not reach the sign-in service. Please try again later.",
@@ -92,6 +94,7 @@
       "username_taken": "That username is already taken.",
       "rate_limited": "Too many attempts. Please try again later.",
       "wx_qr_failed": "Couldn't load the QR code. Please try again.",
+      "wx_link_failed": "Couldn't open the WeChat mini program. Please try again.",
       "generic": "Something went wrong. Please try again."
     }
   },

@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { fetchProviders, loginWithPassword, normalizeReturnTo, signIn } from "@/lib/auth-client";
+import { startWechatMiniProgramLogin } from "@/lib/wechat-mobile-login";
 import { ApiError } from "@/lib/api-client";
+import { isMobileBrowser } from "@/utils/device";
+import { useResumeWechatLogin } from "@/hooks/useResumeWechatLogin";
 import type { AuthProviders } from "@/types/auth";
 import { AuthAlert, AuthField } from "@/components/auth/AuthForm";
 import { WechatQrLogin } from "@/components/auth/WechatQrLogin";
@@ -49,6 +52,9 @@ function LoginContent() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [wechatLaunching, setWechatLaunching] = useState(false);
+  const [wechatError, setWechatError] = useState<string | null>(null);
+  const { pending: wechatPending, resume: resumeWechat } = useResumeWechatLogin();
 
   // 已登录直接回去，不要让用户再点一次
   useEffect(() => {
@@ -93,6 +99,30 @@ function LoginContent() {
 
   const registerHref =
     returnTo === "/" ? "/register" : `/register?returnTo=${encodeURIComponent(returnTo)}`;
+
+  async function onWechatPress() {
+    // 只配了开放平台（无小程序凭据）时维持旧跳转
+    if (providers?.wechatMode === "oauth") {
+      signIn("wechat", { returnTo });
+      return;
+    }
+    if (!isMobileBrowser()) {
+      setQrOpen(true);
+      return;
+    }
+    if (wechatLaunching) return;
+    setWechatError(null);
+    setWechatLaunching(true);
+    try {
+      const pending = await startWechatMiniProgramLogin(returnTo);
+      // 新标签页打开时本页仍在前台：立刻开始轮询，用户在小程序确认后自动登录
+      resumeWechat(pending);
+    } catch (e) {
+      setWechatError(errorMessage(t, e instanceof ApiError ? e.code : "generic"));
+    } finally {
+      setWechatLaunching(false);
+    }
+  }
 
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-10">
@@ -149,20 +179,18 @@ function LoginContent() {
           <Button
             className="w-full"
             size="lg"
-            disabled={checking || !wechatEnabled}
-            onClick={() => {
-              // 默认走小程序码扫码弹窗；仅当后端只配了开放平台（无小程序凭据）才走旧跳转
-              if (providers?.wechatMode === "oauth") {
-                signIn("wechat", { returnTo });
-              } else {
-                setQrOpen(true);
-              }
-            }}
+            disabled={checking || !wechatEnabled || wechatLaunching}
+            onClick={() => void onWechatPress()}
             title={!checking && !wechatEnabled ? t("providerUnavailable") : undefined}
           >
             <MessageCircle className="mr-2 h-5 w-5" aria-hidden />
-            {t("wechatSignIn")}
+            {wechatLaunching ? t("wechatOpening") : t("wechatSignIn")}
           </Button>
+
+          {wechatError && <AuthAlert>{wechatError}</AuthAlert>}
+          {!wechatError && wechatPending && (
+            <p className="text-xs text-text-muted">{t("wechatPendingHint")}</p>
+          )}
 
           <Button
             className="w-full"
@@ -224,6 +252,7 @@ function errorMessage(t: ReturnType<typeof useTranslations>, code: string): stri
     "username_taken",
     "rate_limited",
     "wx_qr_failed",
+    "wx_link_failed",
     "network_error",
   ];
   const key = known.includes(code) ? `errors.${code}` : "errors.generic";

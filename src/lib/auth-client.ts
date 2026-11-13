@@ -14,6 +14,7 @@ import type {
   OAuthProvider,
   PasswordAuthResult,
   SessionLike,
+  WechatLinkCreateResult,
   WechatQrCreateResult,
   WechatQrEnvVersion,
   WechatQrStatusResult,
@@ -66,6 +67,18 @@ export function fetchProviders() {
  */
 export function createWechatQr(envVersion?: WechatQrEnvVersion) {
   return apiFetch<WechatQrCreateResult>("/auth/wechat/qr/create", {
+    method: "POST",
+    body: envVersion ? { envVersion } : {},
+    auth: false,
+  });
+}
+
+/**
+ * 手机端直开小程序：要一条带 ticket 的微信 URL Link。
+ * 失败抛 ApiError，`code` 为 `not_configured` / `wx_link_failed` / `rate_limited`。
+ */
+export function createWechatLink(envVersion?: WechatQrEnvVersion) {
+  return apiFetch<WechatLinkCreateResult>("/auth/wechat/link/create", {
     method: "POST",
     body: envVersion ? { envVersion } : {},
     auth: false,

@@ -33,7 +33,9 @@
   "auth": {
     "welcome": "欢迎来到 Pindou",
     "subtitle": "登录以创建、保存和分享拼豆图纸",
-    "wechatSignIn": "使用微信扫码登录",
+    "wechatSignIn": "使用微信登录",
+    "wechatOpening": "正在打开微信…",
+    "wechatPendingHint": "已打开小程序，请在小程序中确认登录",
     "googleSignIn": "使用 Google 登录",
     "providerUnavailable": "该登录方式暂未开放",
     "providersFailed": "无法连接登录服务，请稍后再试",
@@ -92,6 +94,7 @@
       "username_taken": "该用户名已被占用",
       "rate_limited": "尝试过于频繁，请稍后再试",
       "wx_qr_failed": "二维码获取失败，请重试",
+      "wx_link_failed": "无法打开微信小程序，请重试",
       "generic": "出了点问题，请重试"
     }
   },

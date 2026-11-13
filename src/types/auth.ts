@@ -39,6 +39,15 @@ export interface WechatQrCreateResult {
   expiresIn: number;
 }
 
+/** 手机端直开小程序：urlLink 是微信官方 https 短链 */
+export interface WechatLinkCreateResult {
+  success: true;
+  ticket: string;
+  urlLink: string;
+  /** 链接对应的登录 ticket 有效期（秒） */
+  expiresIn: number;
+}
+
 /** 小程序码打开的版本；后端接受白名单内的值，不传时用服务端配置（默认 release） */
 export type WechatQrEnvVersion = "release" | "trial" | "develop";
 
