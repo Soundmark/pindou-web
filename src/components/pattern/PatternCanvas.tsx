@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { CollapseIcon, ExpandIcon } from "@/components/editor/icons";
 import { BEAD_PALETTE } from "@/utils/beadColors";
-import { CANVAS_THEME } from "@/utils/canvasTheme";
+import { CANVAS_THEME, getLuminance } from "@/utils/canvasTheme";
 import { clamp, fitViewFor, getStagePoint, zoomAt, type View } from "@/utils/canvasView";
 
 interface PatternCanvasProps {
@@ -22,6 +22,7 @@ const MAX_ZOOM = 40; // px per cell
 const ZOOM_STEP = 1.25;
 const GRID_LINE_MIN_PX = 4; // 跳过细网格线的最小格子屏幕尺寸
 const GRID_LINE_BOLD_MIN_PX = 3; // 每5格粗线的最小格子屏幕尺寸（比细线略低，3px 仍可辨）
+const LABEL_MIN_PX = 20; // 显示色号标签的最小格子屏幕尺寸
 
 /**
  * 已发布图纸的只读查看器：滚轮缩放、拖动平移、双指捏合，
@@ -106,7 +107,13 @@ export function PatternCanvas({
     const y0 = Math.max(0, Math.floor((0 - gy) / cs));
     const y1 = Math.min(gridHeight - 1, Math.ceil((H - gy) / cs));
 
-    const checker = Math.max(3, Math.floor(cs / 4));
+    const showLabel = cs >= LABEL_MIN_PX;
+    if (showLabel) {
+      ctx.font = `${Math.max(8, cs * 0.4)}px monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+    }
+
     for (let y = y0; y <= y1; y++) {
       const row = pixels[y];
       if (!row) continue;
@@ -115,22 +122,23 @@ export function PatternCanvas({
         const px = gx + x * cs;
         const py = gy + y * cs;
         if (id < 0) {
-          // 空格子（不贴珠）：迷你棋盘格，与白色珠子区分
-          if (cs >= GRID_LINE_MIN_PX) {
-            ctx.fillStyle = CANVAS_THEME.checkerDark;
-            ctx.fillRect(px, py, checker, checker);
-            ctx.fillRect(px + checker, py + checker, checker, checker);
-          }
+          // 空格子（不贴珠）：留白，不显示任何内容
           continue;
         }
         if (isHighlighting) ctx.globalAlpha = id === highlightedColorId ? 1 : 0.25;
-        ctx.fillStyle = BEAD_PALETTE[id]?.hex ?? "#ffffff";
+        const color = BEAD_PALETTE[id];
+        ctx.fillStyle = color?.hex ?? "#ffffff";
         ctx.fillRect(px, py, cs, cs);
         ctx.globalAlpha = 1;
         if (isHighlighting && id === highlightedColorId) {
           ctx.strokeStyle = CANVAS_THEME.highlight;
           ctx.lineWidth = 2;
           ctx.strokeRect(px + 1, py + 1, cs - 2, cs - 2);
+        }
+        if (showLabel && color) {
+          ctx.fillStyle =
+            getLuminance(color.hex) > 0.5 ? CANVAS_THEME.labelDark : CANVAS_THEME.labelLight;
+          ctx.fillText(color.id, px + cs / 2, py + cs / 2);
         }
       }
     }

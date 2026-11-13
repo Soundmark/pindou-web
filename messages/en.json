@@ -144,6 +144,7 @@
     "favoriteCount": "{count, plural, =1 {# favorite} other {# favorites}}",
     "favorite": "♥ Favorite",
     "downloadPng": "Download PNG",
+    "socialKitButton": "Social media kit",
     "editInCreator": "Edit in Creator",
     "favorited": "♥ Favorited",
     "unfavorite": "Unfavorite",
@@ -277,6 +278,32 @@
     "duplicateName": "A tag with this name already exists.",
     "invalidName": "Tag names must be 1–20 characters.",
     "failed": "Operation failed. Please try again."
+  },
+  "socialKit": {
+    "button": "Social media kit",
+    "title": "Social media kit",
+    "tabCover": "Cover",
+    "tabPattern": "Pattern",
+    "tabCopy": "Copy",
+    "downloadCover": "Download cover",
+    "downloadPattern": "Download pattern",
+    "regenerate": "Regenerate",
+    "generating": "Generating copy…",
+    "titleLabel": "Title",
+    "contentLabel": "Content",
+    "copyTitle": "Copy title",
+    "copyContent": "Copy content",
+    "copied": "Copied",
+    "copyFailed": "Copy failed, please select manually",
+    "errors": {
+      "forbidden": "This account can't generate copy",
+      "owner_not_configured": "No admin is configured on the server",
+      "ai_not_configured": "The copy model is not configured on the server",
+      "invalid_input": "Pattern information is incomplete",
+      "rate_limited": "Too many requests, please try again later",
+      "upstream_failed": "Copy generation failed, please retry",
+      "default": "Copy generation failed, please retry"
+    }
   },
   "metadata": {
     "title": "Pindou - Bead Pattern Creator",

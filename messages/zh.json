@@ -144,6 +144,7 @@
     "favoriteCount": "{count, plural, other {# 次收藏}}",
     "favorite": "♥ 收藏",
     "downloadPng": "下载 PNG",
+    "socialKitButton": "社交媒体素材",
     "editInCreator": "在创建器中编辑",
     "favorited": "♥ 已收藏",
     "unfavorite": "取消收藏",
@@ -277,6 +278,32 @@
     "duplicateName": "已有同名标签。",
     "invalidName": "标签名需为 1–20 个字符。",
     "failed": "操作失败，请重试。"
+  },
+  "socialKit": {
+    "button": "社交媒体素材",
+    "title": "社交媒体素材",
+    "tabCover": "封面图",
+    "tabPattern": "图纸",
+    "tabCopy": "文案",
+    "downloadCover": "下载封面",
+    "downloadPattern": "下载图纸",
+    "regenerate": "重新生成",
+    "generating": "文案生成中…",
+    "titleLabel": "标题",
+    "contentLabel": "内容",
+    "copyTitle": "复制标题",
+    "copyContent": "复制内容",
+    "copied": "已复制",
+    "copyFailed": "复制失败，请手动选择",
+    "errors": {
+      "forbidden": "当前账号没有权限生成文案",
+      "owner_not_configured": "后端尚未配置管理员",
+      "ai_not_configured": "后端尚未配置文案模型",
+      "invalid_input": "图纸信息不完整，无法生成文案",
+      "rate_limited": "操作太快了，请稍后再试",
+      "upstream_failed": "文案生成失败，请重试",
+      "default": "文案生成失败，请重试"
+    }
   },
   "metadata": {
     "title": "Pindou - 拼豆图纸创作工具",

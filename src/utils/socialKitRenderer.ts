@@ -1,0 +1,568 @@
+/**
+ * 社交媒体素材渲染：封面图与带图例/水印的图纸图。
+ *
+ * 全部在浏览器 Canvas 上完成 —— 项目没有服务端绘图依赖，
+ * 像素数据本来也只在客户端存在（从 ZIP 还原）。
+ */
+import { BEAD_PALETTE } from "@/utils/beadColors";
+import {
+  getCanvasFontFamily,
+  SOCIAL_TAG_TINTS,
+  SOCIAL_THEME,
+} from "@/utils/canvasTheme";
+import { renderPatternToCanvas } from "@/utils/patternRenderer";
+
+export interface PatternColorStat {
+  /** BEAD_PALETTE 下标 */
+  index: number;
+  /** 珠子色号，如 A01 */
+  id: string;
+  hex: string;
+  count: number;
+}
+
+export interface PatternStats {
+  beadCount: number;
+  colorCount: number;
+  entries: PatternColorStat[];
+}
+
+export interface SocialCoverMeta {
+  name: string;
+  width: number;
+  height: number;
+  tags: string[];
+}
+
+const COVER_W = 1080;
+const COVER_H = 1440;
+
+/** 统计非空格子的颜色分布，按数量降序。 */
+export function computePatternStats(pixels: number[][]): PatternStats {
+  const countMap = new Map<number, number>();
+  let beadCount = 0;
+  for (const row of pixels) {
+    if (!row) continue;
+    for (const id of row) {
+      if (id < 0 || !BEAD_PALETTE[id]) continue;
+      countMap.set(id, (countMap.get(id) || 0) + 1);
+      beadCount++;
+    }
+  }
+  const entries = Array.from(countMap.entries())
+    .map(([index, count]) => {
+      const color = BEAD_PALETTE[index];
+      return { index, id: color.id, hex: color.hex, count };
+    })
+    .sort((a, b) => b.count - a.count);
+  return { beadCount, colorCount: entries.length, entries };
+}
+
+/** 生成合法、不过长的文件名主体（不含扩展名）。 */
+export function sanitizeFilename(name: string): string {
+  const cleaned = name
+    .replace(/[\\/:*?"<>|\x00-\x1f]/g, "_")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s.]+|[\s.]+$/g, "")
+    .slice(0, 80);
+  return cleaned || "pattern";
+}
+
+/** 封面图：缩略图 + 图纸名 + 配色 + 颜色数/豆子数/尺寸 + 标签。 */
+export function renderSocialCover(
+  pixels: number[][],
+  meta: SocialCoverMeta,
+  canvas: HTMLCanvasElement
+): void {
+  canvas.width = COVER_W;
+  canvas.height = COVER_H;
+  const ctx = canvas.getContext("2d")!;
+  const family = getCanvasFontFamily();
+  const stats = computePatternStats(pixels);
+
+  ctx.fillStyle = SOCIAL_THEME.background;
+  ctx.fillRect(0, 0, COVER_W, COVER_H);
+  drawBackgroundDecor(ctx);
+
+  // ── 品牌栏 ─────────────────────────────────────────────
+  drawBeadLogo(ctx, 80, 58, 46);
+  ctx.fillStyle = SOCIAL_THEME.ink;
+  ctx.font = `700 42px ${family}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("拼豆屋", 142, 84);
+
+  const badgeText = "拼豆图纸";
+  const badgeFont = `700 22px ${family}`;
+  ctx.font = badgeFont;
+  const badgeW = ctx.measureText(badgeText).width + 48;
+  drawPill(ctx, badgeText, {
+    x: COVER_W - 80 - badgeW / 2,
+    y: 84,
+    width: badgeW,
+    font: badgeFont,
+    color: SOCIAL_THEME.primaryStrong,
+    background: SOCIAL_THEME.pillBg,
+    padX: 24,
+    padY: 12,
+  });
+
+  // ── 标题 ───────────────────────────────────────────────
+  const displayName = meta.name.trim() || "拼豆图纸";
+  ctx.fillStyle = SOCIAL_THEME.ink;
+  ctx.font = `700 64px ${family}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const lines = wrapText(ctx, displayName, 900, 2);
+  const titleTop = lines.length > 1 ? 176 : 196;
+  lines.forEach((line, i) => {
+    ctx.fillText(line, COVER_W / 2, titleTop + i * 78);
+  });
+  const titleBottom = titleTop + Math.max(0, lines.length - 1) * 78;
+
+  // 标题下的一笔粉色标记
+  ctx.fillStyle = SOCIAL_THEME.primary;
+  roundedRectPath(ctx, COVER_W / 2 - 60, titleBottom + 36, 120, 8, 4);
+  ctx.fill();
+
+  // ── 图纸展示：错位色板 + 白卡 + 两角胶带 ────────────────
+  const card = { x: 80, y: 330, w: 920, h: 700, r: 36 };
+  roundedRectPath(ctx, card.x + 16, card.y + 18, card.w, card.h, card.r);
+  ctx.fillStyle = "#ffe3e9";
+  ctx.fill();
+
+  ctx.save();
+  ctx.shadowColor = "rgba(214, 120, 138, 0.22)";
+  ctx.shadowBlur = 26;
+  ctx.shadowOffsetY = 12;
+  roundedRectPath(ctx, card.x, card.y, card.w, card.h, card.r);
+  ctx.fillStyle = SOCIAL_THEME.card;
+  ctx.fill();
+  ctx.restore();
+
+  roundedRectPath(ctx, card.x, card.y, card.w, card.h, card.r);
+  ctx.strokeStyle = SOCIAL_THEME.border;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  drawThumbnail(ctx, pixels, {
+    x: card.x + 36,
+    y: card.y + 36,
+    w: card.w - 72,
+    h: card.h - 72,
+    radius: 24,
+  });
+
+  drawTape(ctx, 168, card.y - 4, -0.2, SOCIAL_THEME.candyYellow);
+  drawTape(ctx, 900, card.y - 4, 0.2, SOCIAL_THEME.primaryLight);
+
+  // ── 数据卡 ─────────────────────────────────────────────
+  const statItems = [
+    { value: String(stats.colorCount), label: "颜色" },
+    { value: String(stats.beadCount), label: "豆子" },
+    { value: `${meta.width}×${meta.height}`, label: "尺寸" },
+  ];
+  const statW = 293;
+  const statGap = 20;
+  statItems.forEach((item, i) => {
+    const x = 80 + i * (statW + statGap);
+    const y = 1060;
+    const h = 108;
+    roundedRectPath(ctx, x, y, statW, h, 26);
+    ctx.fillStyle = SOCIAL_THEME.card;
+    ctx.fill();
+    ctx.strokeStyle = SOCIAL_THEME.border;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = SOCIAL_THEME.ink;
+    ctx.font = `700 40px ${family}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(item.value, x + statW / 2, y + 42);
+
+    ctx.fillStyle = SOCIAL_THEME.textSecondary;
+    ctx.font = `500 20px ${family}`;
+    ctx.fillText(item.label, x + statW / 2, y + 82);
+  });
+
+  // ── 标签 ───────────────────────────────────────────────
+  if (meta.tags.length > 0) {
+    drawTags(ctx, meta.tags, family, 1225);
+  }
+
+  // ── 页脚 / 水印 ────────────────────────────────────────
+  const footY = 1300;
+  const footH = 78;
+  roundedRectPath(ctx, 80, footY, 920, footH, 24);
+  ctx.fillStyle = SOCIAL_THEME.pillBg;
+  ctx.fill();
+  ctx.strokeStyle = SOCIAL_THEME.border;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  drawBeadLogo(ctx, 112, footY + 24, 30);
+  ctx.fillStyle = SOCIAL_THEME.primaryStrong;
+  ctx.font = `700 28px ${family}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(SOCIAL_THEME.watermarkText, 156, footY + footH / 2);
+
+  ctx.fillStyle = SOCIAL_THEME.textSecondary;
+  ctx.font = `500 20px ${family}`;
+  ctx.textAlign = "right";
+  ctx.fillText("把照片变成拼豆图纸", 968, footY + footH / 2);
+}
+
+/** 图纸图：自适应格子尺寸 + 图例 + 水印。 */
+export function renderSocialPattern(pixels: number[][], canvas: HTMLCanvasElement): void {
+  const h = pixels.length;
+  const w = pixels[0]?.length ?? 0;
+  if (w === 0 || h === 0) return;
+  const cellSize = Math.max(4, Math.min(48, Math.floor(1600 / Math.max(w, h))));
+  renderPatternToCanvas(pixels, canvas, cellSize, {
+    showLabels: true,
+    legend: true,
+    watermark: SOCIAL_THEME.watermarkText,
+    padding: 24,
+  });
+}
+
+/** 把 Canvas 转成 PNG 并触发下载。 */
+export function downloadCanvas(canvas: HTMLCanvasElement, filename: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("PNG export failed"));
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      resolve();
+    }, "image/png");
+  });
+}
+
+// =============================================================================
+// 绘制辅助
+// =============================================================================
+
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+): void {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.arcTo(x + w, y, x + w, y + radius, radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+  ctx.lineTo(x + radius, y + h);
+  ctx.arcTo(x, y + h, x, y + h - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+}
+
+function drawBackgroundDecor(ctx: CanvasRenderingContext2D): void {
+  // 大色块只作氛围，压在内容下方
+  const circles = [
+    { x: 1010, y: 118, r: 210, color: SOCIAL_THEME.primaryLight, alpha: 0.35 },
+    { x: 36, y: 1330, r: 160, color: SOCIAL_THEME.candyMint, alpha: 0.22 },
+    { x: 1020, y: 690, r: 90, color: SOCIAL_THEME.candyYellow, alpha: 0.3 },
+  ];
+  for (const circle of circles) {
+    ctx.save();
+    ctx.globalAlpha = circle.alpha;
+    ctx.fillStyle = circle.color;
+    ctx.beginPath();
+    ctx.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 边角散落的“珠子”，带孔，点题拼豆
+  const beads = [
+    { x: 52, y: 330, r: 11, color: SOCIAL_THEME.primary },
+    { x: 1028, y: 352, r: 9, color: SOCIAL_THEME.candyYellow },
+    { x: 54, y: 860, r: 12, color: SOCIAL_THEME.candyMint },
+    { x: 1026, y: 1040, r: 10, color: SOCIAL_THEME.primaryLight },
+  ];
+  for (const bead of beads) {
+    ctx.save();
+    ctx.fillStyle = bead.color;
+    ctx.beginPath();
+    ctx.arc(bead.x, bead.y, bead.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(bead.x, bead.y, bead.r * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+/** 左上角 3×3 珠子 Logo。 */
+function drawBeadLogo(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number
+): void {
+  const gap = 4;
+  const cell = (size - gap * 2) / 3;
+  const colors = [
+    SOCIAL_THEME.primary,
+    SOCIAL_THEME.primaryLight,
+    SOCIAL_THEME.primaryStrong,
+    SOCIAL_THEME.candyYellow,
+    SOCIAL_THEME.primary,
+    SOCIAL_THEME.candyMint,
+    SOCIAL_THEME.primaryLight,
+    SOCIAL_THEME.primaryStrong,
+    SOCIAL_THEME.primary,
+  ];
+  colors.forEach((color, index) => {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
+    roundedRectPath(
+      ctx,
+      x + col * (cell + gap),
+      y + row * (cell + gap),
+      cell,
+      cell,
+      cell * 0.28
+    );
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
+}
+
+/** 贴在卡片边角的胶带。 */
+function drawTape(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  angle: number,
+  color: string
+): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = color;
+  roundedRectPath(ctx, -70, -18, 140, 36, 4);
+  ctx.fill();
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  for (let i = -40; i <= 40; i += 40) {
+    ctx.beginPath();
+    ctx.moveTo(i, -18);
+    ctx.lineTo(i, 18);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+interface PillOptions {
+  x: number;
+  y: number;
+  font: string;
+  color: string;
+  background: string;
+  padX: number;
+  padY: number;
+  /** 不传时按文字宽度自动计算 */
+  width?: number;
+  /** 可选描边色（半透明），用于让标签更立体 */
+  borderColor?: string;
+}
+
+function drawPill(ctx: CanvasRenderingContext2D, text: string, options: PillOptions): void {
+  const { x, y, font, color, background, padX, padY, borderColor } = options;
+  ctx.save();
+  ctx.font = font;
+  const width = options.width ?? ctx.measureText(text).width + padX * 2;
+  const height = padY * 2 + 32;
+  roundedRectPath(ctx, x - width / 2, y - height / 2, width, height, height / 2);
+  ctx.fillStyle = background;
+  ctx.fill();
+  if (borderColor) {
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 2;
+    roundedRectPath(ctx, x - width / 2, y - height / 2, width, height, height / 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y + 1);
+  ctx.restore();
+}
+
+/** 按字符折行，最多 maxLines 行，超出加省略号。 */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number
+): string[] {
+  const chars = Array.from(text.trim());
+  const lines: string[] = [];
+  let line = "";
+
+  for (const ch of chars) {
+    const next = line + ch;
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line);
+      line = ch;
+      if (lines.length === maxLines) break;
+    } else {
+      line = next;
+    }
+  }
+  if (lines.length < maxLines && line) lines.push(line);
+  if (lines.length === maxLines && lines.join("").length < chars.length) {
+    let last = lines[maxLines - 1];
+    while (last && ctx.measureText(`${last}…`).width > maxWidth) {
+      last = last.slice(0, -1);
+    }
+    lines[maxLines - 1] = `${last}…`;
+  }
+  return lines;
+}
+
+function drawThumbnail(
+  ctx: CanvasRenderingContext2D,
+  pixels: number[][],
+  box: { x: number; y: number; w: number; h: number; radius: number }
+): void {
+  const h = pixels.length;
+  const w = pixels[0]?.length ?? 0;
+  if (w === 0 || h === 0) return;
+
+  const cell = Math.max(2, Math.floor(Math.min(box.w / w, box.h / h)));
+  const drawW = cell * w;
+  const drawH = cell * h;
+  const ox = box.x + (box.w - drawW) / 2;
+  const oy = box.y + (box.h - drawH) / 2;
+
+  ctx.save();
+  roundedRectPath(ctx, box.x, box.y, box.w, box.h, box.radius);
+  ctx.clip();
+  ctx.fillStyle = SOCIAL_THEME.card;
+  ctx.fillRect(box.x, box.y, box.w, box.h);
+
+  // 卡面底纹：淡淡的对齐孔位，像拼豆板，也填补图案四周的留白
+  ctx.fillStyle = "rgba(74, 36, 48, 0.055)";
+  const step = 20;
+  for (let gy = box.y + step / 2; gy < box.y + box.h; gy += step) {
+    for (let gx = box.x + step / 2; gx < box.x + box.w; gx += step) {
+      ctx.beginPath();
+      ctx.arc(gx, gy, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  for (let y = 0; y < h; y++) {
+    const row = pixels[y];
+    if (!row) continue;
+    for (let x = 0; x < w; x++) {
+      const id = row[x];
+      if (id < 0) continue;
+      const color = BEAD_PALETTE[id];
+      if (!color) continue;
+      ctx.fillStyle = color.hex;
+      ctx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+    }
+  }
+  ctx.restore();
+}
+
+function drawTags(
+  ctx: CanvasRenderingContext2D,
+  tags: string[],
+  family: string,
+  y: number
+): void {
+  const font = `700 26px ${family}`;
+  const padX = 26;
+  const gap = 16;
+  const startX = 80;
+  const tagStartX = 154;
+  const maxRight = 1000;
+
+  ctx.save();
+  ctx.fillStyle = SOCIAL_THEME.textMuted;
+  ctx.font = `600 20px ${family}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("标签", startX, y);
+
+  ctx.font = font;
+  const items = tags.slice(0, 6).map((tag) => `#${tag}`);
+  const widths = items.map((text) => ctx.measureText(text).width + padX * 2);
+  const ellipsisWidth = ctx.measureText("…").width + padX * 2;
+  const available = maxRight - tagStartX;
+
+  const kept: { text: string; width: number; index: number }[] = [];
+  let used = 0;
+  for (let i = 0; i < items.length; i++) {
+    const next = used + widths[i] + (kept.length > 0 ? gap : 0);
+    const reserve = i < items.length - 1 ? gap + ellipsisWidth : 0;
+    if (next + reserve > available) break;
+    kept.push({ text: items[i], width: widths[i], index: i });
+    used = next;
+  }
+  if (kept.length === 0) {
+    ctx.restore();
+    return;
+  }
+
+  const hasMore = kept.length < items.length;
+  let x = tagStartX;
+
+  kept.forEach((item) => {
+    const tint = SOCIAL_TAG_TINTS[item.index % SOCIAL_TAG_TINTS.length];
+    drawPill(ctx, item.text, {
+      x: x + item.width / 2,
+      y,
+      width: item.width,
+      font,
+      color: tint.fg,
+      background: tint.bg,
+      borderColor: tint.fg,
+      padX,
+      padY: 14,
+    });
+    x += item.width + gap;
+  });
+
+  if (hasMore) {
+    drawPill(ctx, "…", {
+      x: x + ellipsisWidth / 2,
+      y,
+      width: ellipsisWidth,
+      font,
+      color: SOCIAL_THEME.textMuted,
+      background: SOCIAL_THEME.card,
+      padX,
+      padY: 14,
+    });
+  }
+  ctx.restore();
+}

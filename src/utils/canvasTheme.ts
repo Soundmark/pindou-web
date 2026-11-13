@@ -21,3 +21,47 @@ export function getLuminance(hex: string): number {
   const b = parseInt(hex.slice(5, 7), 16) / 255;
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+
+/**
+ * 社交媒体素材（封面/图纸）的 Canvas 色板。
+ * 与 globals.css 的 @theme inline 一一对应；改主题色时必须同步这里。
+ */
+export const SOCIAL_THEME = {
+  background: "#fdf8f3", // --color-background
+  card: "#ffffff", // --color-card-bg
+  border: "#f2d6d9", // --color-clay-border
+  borderStrong: "#ecc3c9", // --color-clay-border-strong
+  ink: "#4a2430", // --color-primary-ink
+  textPrimary: "#4a3436", // --color-text-primary
+  textSecondary: "#7a5f5c", // --color-text-secondary
+  textMuted: "#a08a86", // --color-text-muted
+  primary: "#ff8fa3", // --color-primary
+  primaryLight: "#ffc9d4", // --color-primary-light
+  primaryStrong: "#c73a58", // --color-primary-strong
+  candyMint: "#55efc4", // --color-green-candy
+  candyYellow: "#ffeaa7", // --color-yellow-candy
+  pillBg: "#fff0f4", // 主粉的浅色底（封面数据胶囊）
+  watermarkColor: "rgba(74, 36, 48, 0.10)",
+  watermarkText: "拼豆屋",
+} as const;
+
+/** 封面标签的糖果底色轮换（与糖果点缀色同族，深色字保证对比度）。 */
+export const SOCIAL_TAG_TINTS = [
+  { bg: "#ffe1e8", fg: "#b52e4c" }, // 粉
+  { bg: "#d9fff4", fg: "#0f7a5f" }, // 薄荷
+  { bg: "#fff6cf", fg: "#8a6a00" }, // 黄
+  { bg: "#e6f1ff", fg: "#2d5c99" }, // 蓝
+] as const;
+
+/**
+ * 读取 next/font 注入的实际 font-family。
+ * Canvas 的 ctx.font 无法解析 CSS 变量，只能在这里换成字符串。
+ */
+export function getCanvasFontFamily(): string {
+  if (typeof document === "undefined") return '"PingFang SC", "Microsoft YaHei", sans-serif';
+  const root = getComputedStyle(document.documentElement);
+  const families = ["--font-nunito", "--font-fredoka"]
+    .map((name) => root.getPropertyValue(name).trim())
+    .filter(Boolean);
+  return [...families, '"PingFang SC"', '"Microsoft YaHei"', "sans-serif"].join(", ");
+}

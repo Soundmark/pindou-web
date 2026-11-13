@@ -11,6 +11,7 @@ import {
 } from "@/services/diagramService";
 import { PatternCanvas } from "@/components/pattern/PatternCanvas";
 import { ColorLegend } from "@/components/pattern/ColorLegend";
+import { SocialKitDialog } from "@/components/pattern/SocialKitDialog";
 import { Button } from "@/components/ui/Button";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
 import { downloadPatternPng } from "@/utils/imageExport";
@@ -37,6 +38,7 @@ export default function PatternDetailPage({
   const { data, isLoading, error } = useDiagram(id);
 
   const [highlightedColor, setHighlightedColor] = useState<number | null>(null);
+  const [socialOpen, setSocialOpen] = useState(false);
   // 结果带 key：只有和当前 zipUrl 匹配的像素才渲染，切换图纸时旧结果自动失效
   const [pattern, setPattern] = useState<{ key: string; pixels: number[][] } | null>(null);
   const [failedKey, setFailedKey] = useState("");
@@ -233,10 +235,28 @@ export default function PatternDetailPage({
         >
           {t("downloadPng")}
         </Button>
+        {user?.isAdmin && (
+          <Button
+            variant="secondary"
+            onClick={() => setSocialOpen(true)}
+            disabled={pixels.length === 0}
+          >
+            {t("socialKitButton")}
+          </Button>
+        )}
         <Link href={`/create?load=${id}`}>
           <Button variant="ghost">{t("editInCreator")}</Button>
         </Link>
       </div>
+
+      {user?.isAdmin && (
+        <SocialKitDialog
+          open={socialOpen}
+          onClose={() => setSocialOpen(false)}
+          diagram={diagram}
+          pixels={pixels}
+        />
+      )}
     </div>
   );
 }
