@@ -150,6 +150,8 @@ export interface PatternRenderOptions {
   watermark?: string;
   /** 图纸四周留白（px）。默认 0 */
   padding?: number;
+  /** 色系标识（如 MARD）：有图例时拼进图例页眉，无图例时单独画一行页眉 */
+  brand?: string;
 }
 
 /**
@@ -163,12 +165,14 @@ export function renderPatternToCanvas(
   cellSize: number = 20,
   options: PatternRenderOptions = {}
 ): void {
-  const { showLabels = true, legend = false, watermark, padding = 0 } = options;
+  const { showLabels = true, legend = false, watermark, padding = 0, brand } = options;
 
   const h = pixels.length;
   const w = pixels[0]?.length ?? 0;
   const gridW = w * cellSize;
   const gridH = h * cellSize;
+  // 无图例时给色系页眉留一行高度
+  const headerH = !legend && brand ? 40 : 0;
 
   // 图例统计：按数量降序
   const counts = new Map<number, number>();
@@ -191,11 +195,20 @@ export function renderPatternToCanvas(
   const legendHeight = legendEntries.length > 0 ? 24 + 24 + legendRows * 26 + 16 : 0;
 
   canvas.width = gridW + padding * 2;
-  canvas.height = gridH + padding * 2 + legendHeight;
+  canvas.height = gridH + padding * 2 + legendHeight + headerH;
   const ctx = canvas.getContext("2d")!;
 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 色系页眉（无图例时的导出样式）
+  if (headerH > 0 && brand) {
+    ctx.fillStyle = CANVAS_THEME.labelDark;
+    ctx.font = `600 14px ${getCanvasFontFamily()}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`色系：${brand}`, padding, Math.round(headerH / 2));
+  }
 
   // 格子足够大时在色块中央标注珠子色号，方便对照实拼
   const showLabel = showLabels && cellSize >= 16;
@@ -213,7 +226,7 @@ export function renderPatternToCanvas(
       if (colorId < 0) continue; // 空格子留白
       const color = BEAD_PALETTE[colorId];
       const px = padding + x * cellSize;
-      const py = padding + y * cellSize;
+      const py = padding + headerH + y * cellSize;
       ctx.fillStyle = color?.hex ?? "#ffffff";
       ctx.fillRect(px, py, cellSize, cellSize);
       if (showLabel && color) {
@@ -225,16 +238,17 @@ export function renderPatternToCanvas(
   }
 
   // 细网格线（含外边线）
+  const gridTop = padding + headerH;
   ctx.strokeStyle = CANVAS_THEME.gridLine;
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let x = 0; x <= w; x++) {
     const px = Math.round(padding + x * cellSize) + 0.5;
-    ctx.moveTo(px, padding);
-    ctx.lineTo(px, padding + gridH);
+    ctx.moveTo(px, gridTop);
+    ctx.lineTo(px, gridTop + gridH);
   }
   for (let y = 0; y <= h; y++) {
-    const py = Math.round(padding + y * cellSize) + 0.5;
+    const py = Math.round(gridTop + y * cellSize) + 0.5;
     ctx.moveTo(padding, py);
     ctx.lineTo(padding + gridW, py);
   }
@@ -246,11 +260,11 @@ export function renderPatternToCanvas(
   ctx.beginPath();
   for (let x = 0; x <= w; x += 5) {
     const px = Math.round(padding + x * cellSize) + 0.5;
-    ctx.moveTo(px, padding);
-    ctx.lineTo(px, padding + gridH);
+    ctx.moveTo(px, gridTop);
+    ctx.lineTo(px, gridTop + gridH);
   }
   for (let y = 0; y <= h; y += 5) {
-    const py = Math.round(padding + y * cellSize) + 0.5;
+    const py = Math.round(gridTop + y * cellSize) + 0.5;
     ctx.moveTo(padding, py);
     ctx.lineTo(padding + gridW, py);
   }
@@ -262,7 +276,7 @@ export function renderPatternToCanvas(
       ctx,
       watermark,
       padding,
-      padding,
+      gridTop,
       gridW,
       gridH,
       Math.max(18, Math.min(42, cellSize * 1.2))
@@ -271,7 +285,7 @@ export function renderPatternToCanvas(
 
   // 图例
   if (legendEntries.length > 0) {
-    const top = padding + gridH;
+    const top = gridTop + gridH;
     ctx.strokeStyle = CANVAS_THEME.gridLine;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -284,7 +298,7 @@ export function renderPatternToCanvas(
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     ctx.fillText(
-      `${legendEntries.length} 种颜色 · ${beadTotal} 颗豆子`,
+      `${brand ? `${brand} · ` : ""}${legendEntries.length} 种颜色 · ${beadTotal} 颗豆子`,
       padding,
       top + 36
     );

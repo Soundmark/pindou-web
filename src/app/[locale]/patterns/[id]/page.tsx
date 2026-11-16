@@ -229,7 +229,8 @@ export default function PatternDetailPage({
         <Button
           variant="secondary"
           onClick={() => {
-            if (pixels.length > 0) void downloadPatternPng(pixels, `${diagram.name}.png`);
+            if (pixels.length > 0)
+              void downloadPatternPng(pixels, `${diagram.name}.png`, diagram.brand);
           }}
           disabled={pixels.length === 0}
         >

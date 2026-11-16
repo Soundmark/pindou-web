@@ -187,7 +187,7 @@ export default function CreatePage() {
 
   const handleExportPng = async () => {
     if (pixels.length === 0 || isProcessing) return;
-    await downloadPatternPng(pixels);
+    await downloadPatternPng(pixels, undefined, "MARD");
   };
 
   const handleReset = () => {

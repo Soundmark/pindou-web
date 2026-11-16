@@ -41,6 +41,7 @@ export const SOCIAL_THEME = {
   candyMint: "#55efc4", // --color-green-candy
   candyYellow: "#ffeaa7", // --color-yellow-candy
   pillBg: "#fff0f4", // 主粉的浅色底（封面数据胶囊）
+  coverPlate: "#ffe3e9", // 封面图纸卡错位底板（主粉 78% 白）
   watermarkColor: "rgba(74, 36, 48, 0.10)",
   watermarkText: "拼豆屋",
 } as const;
@@ -61,6 +62,21 @@ export function getCanvasFontFamily(): string {
   if (typeof document === "undefined") return '"PingFang SC", "Microsoft YaHei", sans-serif';
   const root = getComputedStyle(document.documentElement);
   const families = ["--font-nunito", "--font-fredoka"]
+    .map((name) => root.getPropertyValue(name).trim())
+    .filter(Boolean);
+  return [...families, '"PingFang SC"', '"Microsoft YaHei"', "sans-serif"].join(", ");
+}
+
+/**
+ * 标题/数字用的展示字体：Fredoka 优先。
+ * 两个变量解析出来都是完整 fallback 链，拼在一起时 Nunito 恒在前，
+ * Fredoka 永远不会命中 —— 展示文本必须单独把 Fredoka 排到最前。
+ * Fredoka 只有拉丁子集，中文照旧回退苹方/雅黑。
+ */
+export function getCanvasHeadingFamily(): string {
+  if (typeof document === "undefined") return '"PingFang SC", "Microsoft YaHei", sans-serif';
+  const root = getComputedStyle(document.documentElement);
+  const families = ["--font-fredoka", "--font-nunito"]
     .map((name) => root.getPropertyValue(name).trim())
     .filter(Boolean);
   return [...families, '"PingFang SC"', '"Microsoft YaHei"', "sans-serif"].join(", ");

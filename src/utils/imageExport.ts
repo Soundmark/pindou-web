@@ -14,14 +14,16 @@ export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 
 /**
  * 用像素矩阵直接生成图纸 PNG 并触发下载（导出 PNG 按钮，无后端）。
- * 渲染走 renderPatternToCanvas：白底 + 细网格 + 每 5 格粗线，便于打印对照拼豆板。
+ * 渲染走 renderPatternToCanvas：白底 + 细网格 + 每 5 格粗线，便于打印对照拼豆板；
+ * 带 brand 时在页眉标注色系（如 MARD），买珠子认色系。
  */
 export async function downloadPatternPng(
   pixels: number[][],
-  filename = `pattern-${Date.now()}.png`
+  filename = `pattern-${Date.now()}.png`,
+  brand?: string
 ): Promise<void> {
   const canvas = document.createElement("canvas");
-  renderPatternToCanvas(pixels, canvas, 20);
+  renderPatternToCanvas(pixels, canvas, 20, { padding: 24, brand });
   const blob = await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("PNG export failed"))),

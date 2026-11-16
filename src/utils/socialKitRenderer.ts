@@ -7,9 +7,11 @@
 import { BEAD_PALETTE } from "@/utils/beadColors";
 import {
   getCanvasFontFamily,
+  getCanvasHeadingFamily,
   SOCIAL_TAG_TINTS,
   SOCIAL_THEME,
 } from "@/utils/canvasTheme";
+import { deriveCoverPalette, type CoverPalette } from "@/utils/coverPalette";
 import { renderPatternToCanvas } from "@/utils/patternRenderer";
 
 export interface PatternColorStat {
@@ -32,10 +34,73 @@ export interface SocialCoverMeta {
   width: number;
   height: number;
   tags: string[];
+  /** 色系标识（如 MARD），拼在「豆子」统计卡的说明行 */
+  brand?: string;
 }
 
 const COVER_W = 1080;
 const COVER_H = 1440;
+
+/** 图纸卡区间下沿（上方是标题区，下方是数据卡 1108）。 */
+const CARD_BAND_BOTTOM = 1024;
+/** 卡面内边距 = 图案四周的白边 */
+const THUMB_PAD = 36;
+const CARD_MIN_H = 440;
+const CARD_MAX_H = 700;
+/** 图纸卡宽度：回满 920，保证预览窗口的存在感 */
+const CARD_W = 920;
+
+interface CoverCard {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  r: number;
+}
+
+interface CoverCardLayout {
+  /** drawThumbnail 必须用同一个格子尺寸，卡面才刚好被图案撑满 */
+  cell: number;
+  card: CoverCard;
+}
+
+/**
+ * 图纸卡布局：宽度固定 920，高度跟随图案长宽比收缩，
+ * 在标题区（含标签行）与数据卡之间垂直居中。不裁剪图案。
+ * bandTop 由标题行数决定（1 行 327 / 2 行 391）。
+ */
+function computeCoverLayout(pixels: number[][], bandTop: number): CoverCardLayout {
+  const gridW = pixels[0]?.length ?? 0;
+  const gridH = pixels.length;
+  const bandH = CARD_BAND_BOTTOM - bandTop;
+
+  if (gridW === 0 || gridH === 0) {
+    return {
+      cell: 12,
+      card: { x: 80, y: bandTop, w: CARD_W, h: Math.min(CARD_MAX_H, bandH), r: 36 },
+    };
+  }
+
+  const maxH = Math.min(CARD_MAX_H, bandH);
+  const cell = Math.max(
+    2,
+    Math.floor(Math.min((CARD_W - THUMB_PAD * 2) / gridW, (maxH - THUMB_PAD * 2) / gridH))
+  );
+  const h = Math.max(
+    Math.min(CARD_MIN_H, maxH),
+    Math.min(maxH, cell * gridH + THUMB_PAD * 2)
+  );
+  return {
+    cell,
+    card: {
+      x: (COVER_W - CARD_W) / 2,
+      y: bandTop + Math.max(0, Math.round((bandH - h) / 2)),
+      w: CARD_W,
+      h,
+      r: 36,
+    },
+  };
+}
 
 /** 统计非空格子的颜色分布，按数量降序。 */
 export function computePatternStats(pixels: number[][]): PatternStats {
@@ -78,27 +143,29 @@ export function renderSocialCover(
   canvas.height = COVER_H;
   const ctx = canvas.getContext("2d")!;
   const family = getCanvasFontFamily();
+  const headingFamily = getCanvasHeadingFamily();
   const stats = computePatternStats(pixels);
+  const palette = deriveCoverPalette(stats.entries);
 
-  ctx.fillStyle = SOCIAL_THEME.background;
+  ctx.fillStyle = palette.background;
   ctx.fillRect(0, 0, COVER_W, COVER_H);
-  drawBackgroundDecor(ctx);
+  drawBackgroundDecor(ctx, palette);
 
   // ── 品牌栏 ─────────────────────────────────────────────
-  drawBeadLogo(ctx, 80, 58, 46);
+  drawBeadLogo(ctx, 80, 58, 46, palette.logoCenter);
   ctx.fillStyle = SOCIAL_THEME.ink;
-  ctx.font = `700 42px ${family}`;
+  ctx.font = `700 44px ${family}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText("拼豆屋", 142, 84);
+  ctx.fillText("拼豆屋", 142, 82);
 
   const badgeText = "拼豆图纸";
-  const badgeFont = `700 22px ${family}`;
+  const badgeFont = `700 24px ${family}`;
   ctx.font = badgeFont;
   const badgeW = ctx.measureText(badgeText).width + 48;
   drawPill(ctx, badgeText, {
     x: COVER_W - 80 - badgeW / 2,
-    y: 84,
+    y: 82,
     width: badgeW,
     font: badgeFont,
     color: SOCIAL_THEME.primaryStrong,
@@ -110,29 +177,40 @@ export function renderSocialCover(
   // ── 标题 ───────────────────────────────────────────────
   const displayName = meta.name.trim() || "拼豆图纸";
   ctx.fillStyle = SOCIAL_THEME.ink;
-  ctx.font = `700 64px ${family}`;
+  ctx.font = `700 72px ${headingFamily}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  // 中文标题加一点字距更透气；measureText 会把字距算进宽度，折行与绘制必须同开关
+  const spacingCtx = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  spacingCtx.letterSpacing = "2px";
   const lines = wrapText(ctx, displayName, 900, 2);
-  const titleTop = lines.length > 1 ? 176 : 196;
+  const titleTop = lines.length > 1 ? 170 : 190;
   lines.forEach((line, i) => {
-    ctx.fillText(line, COVER_W / 2, titleTop + i * 78);
+    ctx.fillText(line, COVER_W / 2, titleTop + i * 84);
   });
-  const titleBottom = titleTop + Math.max(0, lines.length - 1) * 78;
+  spacingCtx.letterSpacing = "0px";
+  const titleBottom = titleTop + Math.max(0, lines.length - 1) * 84;
 
-  // 标题下的一笔粉色标记
-  ctx.fillStyle = SOCIAL_THEME.primary;
-  roundedRectPath(ctx, COVER_W / 2 - 60, titleBottom + 36, 120, 8, 4);
+  // 标题下的一笔强调色标记
+  ctx.fillStyle = palette.underline;
+  roundedRectPath(ctx, COVER_W / 2 - 60, titleBottom + 34, 120, 8, 4);
   ctx.fill();
 
+  // ── 标签行：标题正下方居中（胶囊自带 #，无需前置说明） ──
+  if (meta.tags.length > 0) {
+    drawTags(ctx, meta.tags, family, titleBottom + 86);
+  }
+
   // ── 图纸展示：错位色板 + 白卡 + 两角胶带 ────────────────
-  const card = { x: 80, y: 330, w: 920, h: 700, r: 36 };
+  // 宽度回满 920；高度跟随图案长宽比，在标题区（含标签行）与数据卡之间垂直居中。
+  const layout = computeCoverLayout(pixels, titleBottom + 140);
+  const card = layout.card;
   roundedRectPath(ctx, card.x + 16, card.y + 18, card.w, card.h, card.r);
-  ctx.fillStyle = "#ffe3e9";
+  ctx.fillStyle = palette.plate;
   ctx.fill();
 
   ctx.save();
-  ctx.shadowColor = "rgba(214, 120, 138, 0.22)";
+  ctx.shadowColor = palette.cardShadow;
   ctx.shadowBlur = 26;
   ctx.shadowOffsetY = 12;
   roundedRectPath(ctx, card.x, card.y, card.w, card.h, card.r);
@@ -145,7 +223,7 @@ export function renderSocialCover(
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  drawThumbnail(ctx, pixels, {
+  drawThumbnail(ctx, pixels, layout.cell, {
     x: card.x + 36,
     y: card.y + 36,
     w: card.w - 72,
@@ -153,69 +231,79 @@ export function renderSocialCover(
     radius: 24,
   });
 
-  drawTape(ctx, 168, card.y - 4, -0.2, SOCIAL_THEME.candyYellow);
-  drawTape(ctx, 900, card.y - 4, 0.2, SOCIAL_THEME.primaryLight);
+  drawTape(ctx, card.x + 88, card.y - 4, -0.2, palette.tapeA);
+  drawTape(ctx, card.x + card.w - 88, card.y - 4, 0.2, palette.tapeB);
 
-  // ── 数据卡 ─────────────────────────────────────────────
+  // ── 数据卡 + 用色色卡条 ────────────────────────────────
+  // 标准 midi 拼豆直径 5mm，成品尺寸 = 格数 × 0.5cm
+  const fmtCm = (cells: number) => `${Number((cells * 0.5).toFixed(1))}`;
+  const showStrip = stats.entries.length > 0;
+  const statsY = showStrip ? 1072 : 1096;
+  const statH = 132;
   const statItems = [
     { value: String(stats.colorCount), label: "颜色" },
-    { value: String(stats.beadCount), label: "豆子" },
-    { value: `${meta.width}×${meta.height}`, label: "尺寸" },
+    { value: String(stats.beadCount), label: meta.brand ? `豆子·${meta.brand}` : "豆子" },
+    {
+      value: `${meta.width}×${meta.height}`,
+      label: `成品约 ${fmtCm(meta.width)}×${fmtCm(meta.height)} cm`,
+    },
   ];
   const statW = 293;
   const statGap = 20;
   statItems.forEach((item, i) => {
     const x = 80 + i * (statW + statGap);
-    const y = 1060;
-    const h = 108;
-    roundedRectPath(ctx, x, y, statW, h, 26);
+    const y = statsY;
+    roundedRectPath(ctx, x, y, statW, statH, 26);
     ctx.fillStyle = SOCIAL_THEME.card;
     ctx.fill();
     ctx.strokeStyle = SOCIAL_THEME.border;
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    ctx.fillStyle = SOCIAL_THEME.ink;
-    ctx.font = `700 40px ${family}`;
+    ctx.fillStyle = palette.statValue;
+    ctx.font = `700 60px ${headingFamily}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(item.value, x + statW / 2, y + 42);
+    ctx.fillText(item.value, x + statW / 2, y + 46);
 
     ctx.fillStyle = SOCIAL_THEME.textSecondary;
-    ctx.font = `500 20px ${family}`;
-    ctx.fillText(item.label, x + statW / 2, y + 82);
+    ctx.font = `700 26px ${family}`;
+    ctx.fillText(item.label, x + statW / 2, y + 102);
   });
 
-  // ── 标签 ───────────────────────────────────────────────
-  if (meta.tags.length > 0) {
-    drawTags(ctx, meta.tags, family, 1225);
+  // 色卡条：图纸全部用色，块数越多块越小，一行放下
+  if (showStrip) {
+    drawColorStrip(ctx, stats.entries, (statsY + statH + 1300) / 2);
   }
 
   // ── 页脚 / 水印 ────────────────────────────────────────
   const footY = 1300;
   const footH = 78;
   roundedRectPath(ctx, 80, footY, 920, footH, 24);
-  ctx.fillStyle = SOCIAL_THEME.pillBg;
+  ctx.fillStyle = palette.footerBg;
   ctx.fill();
   ctx.strokeStyle = SOCIAL_THEME.border;
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  drawBeadLogo(ctx, 112, footY + 24, 30);
-  ctx.fillStyle = SOCIAL_THEME.primaryStrong;
-  ctx.font = `700 28px ${family}`;
+  ctx.fillStyle = palette.footerInk;
+  ctx.font = `700 30px ${family}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(SOCIAL_THEME.watermarkText, 156, footY + footH / 2);
+  ctx.fillText(SOCIAL_THEME.watermarkText, 112, footY + footH / 2);
 
   ctx.fillStyle = SOCIAL_THEME.textSecondary;
-  ctx.font = `500 20px ${family}`;
+  ctx.font = `500 22px ${family}`;
   ctx.textAlign = "right";
   ctx.fillText("把照片变成拼豆图纸", 968, footY + footH / 2);
 }
 
-/** 图纸图：自适应格子尺寸 + 图例 + 水印。 */
-export function renderSocialPattern(pixels: number[][], canvas: HTMLCanvasElement): void {
+/** 图纸图：自适应格子尺寸 + 色系/图例 + 水印。 */
+export function renderSocialPattern(
+  pixels: number[][],
+  canvas: HTMLCanvasElement,
+  brand?: string
+): void {
   const h = pixels.length;
   const w = pixels[0]?.length ?? 0;
   if (w === 0 || h === 0) return;
@@ -225,6 +313,7 @@ export function renderSocialPattern(pixels: number[][], canvas: HTMLCanvasElemen
     legend: true,
     watermark: SOCIAL_THEME.watermarkText,
     padding: 24,
+    brand,
   });
 }
 
@@ -273,12 +362,15 @@ function roundedRectPath(
   ctx.closePath();
 }
 
-function drawBackgroundDecor(ctx: CanvasRenderingContext2D): void {
+function drawBackgroundDecor(
+  ctx: CanvasRenderingContext2D,
+  palette: CoverPalette
+): void {
   // 大色块只作氛围，压在内容下方
   const circles = [
-    { x: 1010, y: 118, r: 210, color: SOCIAL_THEME.primaryLight, alpha: 0.35 },
-    { x: 36, y: 1330, r: 160, color: SOCIAL_THEME.candyMint, alpha: 0.22 },
-    { x: 1020, y: 690, r: 90, color: SOCIAL_THEME.candyYellow, alpha: 0.3 },
+    { x: 1010, y: 118, r: 210, ...palette.decor[0] },
+    { x: 36, y: 1330, r: 160, ...palette.decor[1] },
+    { x: 1020, y: 690, r: 90, ...palette.decor[2] },
   ];
   for (const circle of circles) {
     ctx.save();
@@ -292,10 +384,10 @@ function drawBackgroundDecor(ctx: CanvasRenderingContext2D): void {
 
   // 边角散落的“珠子”，带孔，点题拼豆
   const beads = [
-    { x: 52, y: 330, r: 11, color: SOCIAL_THEME.primary },
-    { x: 1028, y: 352, r: 9, color: SOCIAL_THEME.candyYellow },
-    { x: 54, y: 860, r: 12, color: SOCIAL_THEME.candyMint },
-    { x: 1026, y: 1040, r: 10, color: SOCIAL_THEME.primaryLight },
+    { x: 52, y: 330, r: 11, color: palette.beadDots[0] },
+    { x: 1028, y: 352, r: 9, color: palette.beadDots[1] },
+    { x: 54, y: 860, r: 12, color: palette.beadDots[2] },
+    { x: 1026, y: 1040, r: 10, color: palette.beadDots[3] },
   ];
   for (const bead of beads) {
     ctx.save();
@@ -312,12 +404,13 @@ function drawBackgroundDecor(ctx: CanvasRenderingContext2D): void {
   }
 }
 
-/** 左上角 3×3 珠子 Logo。 */
+/** 左上角 3×3 珠子 Logo；centerColor 只替换中心格（封面用来呼应图纸主色）。 */
 function drawBeadLogo(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  size: number
+  size: number,
+  centerColor?: string
 ): void {
   const gap = 4;
   const cell = (size - gap * 2) / 3;
@@ -326,7 +419,7 @@ function drawBeadLogo(
     SOCIAL_THEME.primaryLight,
     SOCIAL_THEME.primaryStrong,
     SOCIAL_THEME.candyYellow,
-    SOCIAL_THEME.primary,
+    centerColor ?? SOCIAL_THEME.primary,
     SOCIAL_THEME.candyMint,
     SOCIAL_THEME.primaryLight,
     SOCIAL_THEME.primaryStrong,
@@ -414,48 +507,82 @@ function drawPill(ctx: CanvasRenderingContext2D, text: string, options: PillOpti
   ctx.restore();
 }
 
-/** 按字符折行，最多 maxLines 行，超出加省略号。 */
+/** CJK（含假名/谚文/全角标点）：断行以单字为单位 */
+const CJK_CHAR_RE =
+  /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿︰-﹏＀-￯　-〿]/;
+
+/** 折行 token：拉丁词保持完整，CJK 拆成单字，空白是独立断行点。 */
+function tokenizeForWrap(text: string): string[] {
+  const tokens: string[] = [];
+  const words = text.trim().split(/\s+/);
+  words.forEach((word, wordIndex) => {
+    if (wordIndex > 0) tokens.push(" ");
+    let latinRun = "";
+    for (const ch of Array.from(word)) {
+      if (CJK_CHAR_RE.test(ch)) {
+        if (latinRun) {
+          tokens.push(latinRun);
+          latinRun = "";
+        }
+        tokens.push(ch);
+      } else {
+        latinRun += ch;
+      }
+    }
+    if (latinRun) tokens.push(latinRun);
+  });
+  return tokens;
+}
+
+/** 按词/字折行，最多 maxLines 行，超出截断加省略号。 */
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
   maxLines: number
 ): string[] {
-  const chars = Array.from(text.trim());
+  const tokens = tokenizeForWrap(text);
   const lines: string[] = [];
   let line = "";
+  let index = 0;
 
-  for (const ch of chars) {
-    const next = line + ch;
-    if (line && ctx.measureText(next).width > maxWidth) {
-      lines.push(line);
-      line = ch;
+  while (index < tokens.length) {
+    const token = tokens[index];
+    if (line && ctx.measureText(line + token).width > maxWidth) {
+      lines.push(line.replace(/\s+$/, ""));
+      line = "";
       if (lines.length === maxLines) break;
-    } else {
-      line = next;
+      if (token === " ") {
+        index += 1;
+        continue;
+      }
     }
+    line += token;
+    index += 1;
   }
-  if (lines.length < maxLines && line) lines.push(line);
-  if (lines.length === maxLines && lines.join("").length < chars.length) {
-    let last = lines[maxLines - 1];
-    while (last && ctx.measureText(`${last}…`).width > maxWidth) {
-      last = last.slice(0, -1);
-    }
-    lines[maxLines - 1] = `${last}…`;
+  if (lines.length < maxLines) {
+    if (line) lines.push(line.replace(/\s+$/, ""));
+    return lines;
   }
+  // 行数用尽仍有剩余 → 截断最后一行放省略号
+  let last = lines[maxLines - 1];
+  while (last && ctx.measureText(`${last}…`).width > maxWidth) {
+    last = last.slice(0, -1);
+  }
+  lines[maxLines - 1] = `${last}…`;
   return lines;
 }
 
 function drawThumbnail(
   ctx: CanvasRenderingContext2D,
   pixels: number[][],
+  cell: number,
   box: { x: number; y: number; w: number; h: number; radius: number }
 ): void {
   const h = pixels.length;
   const w = pixels[0]?.length ?? 0;
   if (w === 0 || h === 0) return;
 
-  const cell = Math.max(2, Math.floor(Math.min(box.w / w, box.h / h)));
   const drawW = cell * w;
   const drawH = cell * h;
   const ox = box.x + (box.w - drawW) / 2;
@@ -499,25 +626,16 @@ function drawTags(
   family: string,
   y: number
 ): void {
-  const font = `700 26px ${family}`;
+  const font = `700 28px ${family}`;
   const padX = 26;
   const gap = 16;
-  const startX = 80;
-  const tagStartX = 154;
-  const maxRight = 1000;
+  const available = 920;
 
   ctx.save();
-  ctx.fillStyle = SOCIAL_THEME.textMuted;
-  ctx.font = `600 20px ${family}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText("标签", startX, y);
-
   ctx.font = font;
   const items = tags.slice(0, 6).map((tag) => `#${tag}`);
   const widths = items.map((text) => ctx.measureText(text).width + padX * 2);
   const ellipsisWidth = ctx.measureText("…").width + padX * 2;
-  const available = maxRight - tagStartX;
 
   const kept: { text: string; width: number; index: number }[] = [];
   let used = 0;
@@ -534,8 +652,11 @@ function drawTags(
   }
 
   const hasMore = kept.length < items.length;
-  let x = tagStartX;
+  const totalWidth = hasMore ? used + gap + ellipsisWidth : used;
+  // 标题居中，标签行也居中：单个标签不再孤零零靠左
+  const startX = Math.max((COVER_W - available) / 2, (COVER_W - totalWidth) / 2);
 
+  let x = startX;
   kept.forEach((item) => {
     const tint = SOCIAL_TAG_TINTS[item.index % SOCIAL_TAG_TINTS.length];
     drawPill(ctx, item.text, {
@@ -564,5 +685,42 @@ function drawTags(
       padY: 14,
     });
   }
+  ctx.restore();
+}
+
+/**
+ * 用色色卡条：一行圆角色块展示图纸全部用色。
+ * 色少块大（上限 44px）、色多块小（下限 4px），恒定一行放下并居中；
+ * 大块中心画白点呼应拼珠孔位，小块保持纯色。
+ */
+function drawColorStrip(
+  ctx: CanvasRenderingContext2D,
+  entries: readonly PatternColorStat[],
+  centerY: number
+): void {
+  const n = entries.length;
+  if (n === 0) return;
+  const gap = n > 20 ? 6 : 12;
+  const size = Math.max(4, Math.floor(Math.min(44, (920 - gap * (n - 1)) / n)));
+  const totalWidth = size * n + gap * (n - 1);
+  const startX = Math.round((COVER_W - totalWidth) / 2);
+  const y = Math.round(centerY - size / 2);
+  const radius = size * 0.28;
+
+  ctx.save();
+  entries.forEach((entry, i) => {
+    const x = startX + i * (size + gap);
+    roundedRectPath(ctx, x, y, size, size, radius);
+    ctx.fillStyle = entry.hex;
+    ctx.fill();
+    if (size >= 20) {
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  });
   ctx.restore();
 }

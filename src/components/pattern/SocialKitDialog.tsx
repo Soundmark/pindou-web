@@ -84,10 +84,11 @@ export function SocialKitDialog({ open, onClose, diagram, pixels }: SocialKitDia
         width: diagram.width,
         height: diagram.height,
         tags: Array.isArray(diagram.tags) ? diagram.tags : [],
+        brand: diagram.brand,
       },
       cover
     );
-    renderSocialPattern(pixels, pattern);
+    renderSocialPattern(pixels, pattern, diagram.brand);
     coverCanvasRef.current = cover;
     patternCanvasRef.current = pattern;
 
