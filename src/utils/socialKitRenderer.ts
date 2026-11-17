@@ -12,7 +12,7 @@ import {
   SOCIAL_THEME,
 } from "@/utils/canvasTheme";
 import { deriveCoverPalette, type CoverPalette } from "@/utils/coverPalette";
-import { renderPatternToCanvas } from "@/utils/patternRenderer";
+import { renderPatternExport } from "@/utils/patternRenderer";
 
 export interface PatternColorStat {
   /** BEAD_PALETTE 下标 */
@@ -298,7 +298,7 @@ export function renderSocialCover(
   ctx.fillText("把照片变成拼豆图纸", 968, footY + footH / 2);
 }
 
-/** 图纸图：自适应格子尺寸 + 色系/图例 + 水印。 */
+/** 图纸图：与详情页“导出 PNG”走同一渲染（renderPatternExport），下载内容完全一致。 */
 export function renderSocialPattern(
   pixels: number[][],
   canvas: HTMLCanvasElement,
@@ -307,14 +307,7 @@ export function renderSocialPattern(
   const h = pixels.length;
   const w = pixels[0]?.length ?? 0;
   if (w === 0 || h === 0) return;
-  const cellSize = Math.max(4, Math.min(48, Math.floor(1600 / Math.max(w, h))));
-  renderPatternToCanvas(pixels, canvas, cellSize, {
-    showLabels: true,
-    legend: true,
-    watermark: SOCIAL_THEME.watermarkText,
-    padding: 24,
-    brand,
-  });
+  renderPatternExport(pixels, canvas, brand);
 }
 
 /** 把 Canvas 转成 PNG 并触发下载。 */

@@ -141,6 +141,18 @@ export function drawPattern(options: DrawOptions): void {
   }
 }
 
+// 图例排版常量：字号/色块/行距整体放大，缩略浏览也能看清色号与数量
+const LEGEND_HEADER_FONT_SIZE = 20;
+const LEGEND_ITEM_FONT_SIZE = 16;
+const LEGEND_COL_GAP = 24;
+const LEGEND_SWATCH_SIZE = 22;
+const LEGEND_ROW_HEIGHT = 34;
+const LEGEND_TEXT_GAP = 8;
+const LEGEND_TOP_PAD = 12;
+const LEGEND_HEADER_LINE = 32;
+const LEGEND_HEADER_GAP = 6;
+const LEGEND_BOTTOM_PAD = 12;
+
 export interface PatternRenderOptions {
   /** 是否绘制色号（格子 ≥16px 时才生效）。默认 true */
   showLabels?: boolean;
@@ -157,7 +169,7 @@ export interface PatternRenderOptions {
 /**
  * 把像素矩阵渲染成静态 PNG 画布（中性打印风格）：
  * 白底 + BEAD_PALETTE 色块 + 细网格线 + 每 5 格粗网格线（对照拼豆板用）。
- * 供详情页与创建页的"导出 PNG"共用；社交媒体素材额外开启图例与水印。
+ * 用户下载统一走 renderPatternExport（图例 + 水印全开）；本函数保留选项供定制渲染。
  */
 export function renderPatternToCanvas(
   pixels: number[][],
@@ -190,9 +202,39 @@ export function renderPatternToCanvas(
     .map(([id, count]) => ({ color: BEAD_PALETTE[id], count }))
     .sort((a, b) => b.count - a.count);
   const beadTotal = legendEntries.reduce((sum, e) => sum + e.count, 0);
-  const legendCols = Math.max(1, Math.floor(gridW / 170));
-  const legendRows = legendEntries.length > 0 ? Math.ceil(legendEntries.length / legendCols) : 0;
-  const legendHeight = legendEntries.length > 0 ? 24 + 24 + legendRows * 26 + 16 : 0;
+  // 图例布局：槽宽取「最宽条目实测宽 + 最小列间距」，按图纸宽度动态算列数，
+  // 再做等宽 grid 排列 —— 每列宽度恒定 = gridW / 列数，
+  // 所有行（含不满行）共用同一组列边界，天然对齐
+  const legendLayout: { x: number; y: number }[] = [];
+  let legendHeight = 0;
+  if (legendEntries.length > 0) {
+    const ctx = canvas.getContext("2d")!;
+    ctx.font = `${LEGEND_ITEM_FONT_SIZE}px ${getCanvasFontFamily()}`;
+    let slotW = 0;
+    for (const entry of legendEntries) {
+      const contentW =
+        LEGEND_SWATCH_SIZE +
+        LEGEND_TEXT_GAP +
+        ctx.measureText(`${entry.color.id} ×${entry.count}`).width;
+      if (contentW > slotW) slotW = contentW;
+    }
+    slotW += LEGEND_COL_GAP;
+    const legendCols = Math.max(1, Math.floor(gridW / slotW));
+    const cellW = gridW / legendCols;
+    legendEntries.forEach((_, i) => {
+      legendLayout.push({
+        x: (i % legendCols) * cellW,
+        y: Math.floor(i / legendCols) * LEGEND_ROW_HEIGHT,
+      });
+    });
+    const legendRows = Math.ceil(legendEntries.length / legendCols);
+    legendHeight =
+      LEGEND_TOP_PAD +
+      LEGEND_HEADER_LINE +
+      LEGEND_HEADER_GAP +
+      legendRows * LEGEND_ROW_HEIGHT +
+      LEGEND_BOTTOM_PAD;
+  }
 
   canvas.width = gridW + padding * 2;
   canvas.height = gridH + padding * 2 + legendHeight + headerH;
@@ -283,45 +325,68 @@ export function renderPatternToCanvas(
     );
   }
 
-  // 图例
+  // 图例：页眉 + 按预排坐标摆放的色块条目
   if (legendEntries.length > 0) {
     const top = gridTop + gridH;
     ctx.strokeStyle = CANVAS_THEME.gridLine;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(padding, top + 12);
-    ctx.lineTo(padding + gridW, top + 12);
+    ctx.moveTo(padding, top + LEGEND_TOP_PAD);
+    ctx.lineTo(padding + gridW, top + LEGEND_TOP_PAD);
     ctx.stroke();
 
     ctx.fillStyle = CANVAS_THEME.labelDark;
-    ctx.font = `600 14px ${getCanvasFontFamily()}`;
+    ctx.font = `600 ${LEGEND_HEADER_FONT_SIZE}px ${getCanvasFontFamily()}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     ctx.fillText(
-      `${brand ? `${brand} · ` : ""}${legendEntries.length} 种颜色 · ${beadTotal} 颗豆子`,
+      `${SOCIAL_THEME.watermarkText} · ${brand ? `${brand} · ` : ""}${legendEntries.length} 种颜色 · ${beadTotal} 颗豆子`,
       padding,
-      top + 36
+      top + LEGEND_TOP_PAD + LEGEND_HEADER_LINE / 2
     );
 
-    const swatch = 14;
-    const itemTop = top + 60;
+    const itemTop = top + LEGEND_TOP_PAD + LEGEND_HEADER_LINE + LEGEND_HEADER_GAP;
     legendEntries.forEach((entry, i) => {
-      const col = i % legendCols;
-      const row = Math.floor(i / legendCols);
-      const x = padding + col * 170;
-      const y = itemTop + row * 26;
+      const pos = legendLayout[i];
+      const x = padding + pos.x;
+      const y = itemTop + pos.y;
       ctx.fillStyle = entry.color.hex;
-      ctx.fillRect(x, y, swatch, swatch);
+      ctx.fillRect(x, y, LEGEND_SWATCH_SIZE, LEGEND_SWATCH_SIZE);
       ctx.strokeStyle = CANVAS_THEME.gridLine;
       ctx.lineWidth = 1;
-      ctx.strokeRect(x + 0.5, y + 0.5, swatch - 1, swatch - 1);
+      ctx.strokeRect(x + 0.5, y + 0.5, LEGEND_SWATCH_SIZE - 1, LEGEND_SWATCH_SIZE - 1);
       ctx.fillStyle = CANVAS_THEME.labelDark;
-      ctx.font = `11px ${getCanvasFontFamily()}`;
+      ctx.font = `${LEGEND_ITEM_FONT_SIZE}px ${getCanvasFontFamily()}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`${entry.color.id} ×${entry.count}`, x + swatch + 5, y + swatch / 2);
+      ctx.fillText(
+        `${entry.color.id} ×${entry.count}`,
+        x + LEGEND_SWATCH_SIZE + LEGEND_TEXT_GAP,
+        y + LEGEND_SWATCH_SIZE / 2
+      );
     });
   }
+}
+
+/**
+ * 用户下载统一入口：详情页“导出 PNG”与社媒素材图纸共用，保证下载内容完全一致 ——
+ * 自适应格子尺寸（长边约 1600px）+ 色号标注 + 颜色图例 + 平铺水印 + 色系标注。
+ */
+export function renderPatternExport(
+  pixels: number[][],
+  canvas: HTMLCanvasElement,
+  brand?: string
+): void {
+  const h = pixels.length;
+  const w = pixels[0]?.length ?? 0;
+  const cellSize = Math.max(4, Math.min(48, Math.floor(1600 / Math.max(w, h, 1))));
+  renderPatternToCanvas(pixels, canvas, cellSize, {
+    showLabels: true,
+    legend: true,
+    watermark: SOCIAL_THEME.watermarkText,
+    padding: 24,
+    brand,
+  });
 }
 
 /** 在矩形区域内平铺旋转 -30° 的半透明水印。 */
