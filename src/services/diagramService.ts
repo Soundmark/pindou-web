@@ -212,6 +212,7 @@ export function useUpdateDiagram() {
     onSuccess: (id) => {
       void qc.invalidateQueries({ queryKey: ["diagram", id] });
       void qc.invalidateQueries({ queryKey: ["diagrams"] });
+      void qc.invalidateQueries({ queryKey: ["favorites"] });
     },
   });
 }

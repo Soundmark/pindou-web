@@ -27,6 +27,19 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // 阻止冒泡到 window，避免同一下 Esc 又触发全屏覆盖层的退出
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -38,6 +51,9 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className={clsx(
           "w-full max-w-md rounded-3xl border-[3px] border-clay-border bg-surface p-6 shadow-card animate-pop-in",
           className

@@ -26,7 +26,7 @@ const MAX_RETURN_TO = 200;
  * 只允许站内相对路径。与后端 `normalizeReturnTo` 保持同一套规则：
  * 拒绝 `//evil.com`、`https://...`、反斜杠、控制字符 —— 任何一条漏掉都是开放重定向。
  */
-export function normalizeReturnTo(raw: unknown, fallback = "/"): string {
+export function normalizeReturnTo(raw: unknown, fallback = "/gallery"): string {
   if (typeof raw !== "string") return fallback;
   const s = raw.trim();
   if (!s || s.length > MAX_RETURN_TO) return fallback;

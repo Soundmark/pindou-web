@@ -23,13 +23,6 @@
     "switchTo": "中文",
     "switchAria": "Switch to Chinese"
   },
-  "landing": {
-    "titleLead": "Turn Photos into",
-    "titleAccent": " Bead Patterns",
-    "subtitle": "Upload any image and convert it into a fusebead pattern. Perfect for Perler, Hama, and Artkal beads.",
-    "getStarted": "Get Started",
-    "browseGallery": "Browse Gallery"
-  },
   "auth": {
     "welcome": "Welcome to Pindou",
     "subtitle": "Sign in to create, save, and share bead patterns",
@@ -108,7 +101,14 @@
     "sortColors": "Most Colors",
     "emptyTitle": "No patterns found",
     "emptyDescription": "Try adjusting your search or filters",
-    "pageInfo": "{page} / {totalPages}"
+    "pageInfo": "{page} / {totalPages}",
+    "moreTags": "More",
+    "moreTagsAria": "Show all tags",
+    "tagsModalTitle": "All tags",
+    "searchTagsPlaceholder": "Search tags...",
+    "searchTagsAria": "Search tags",
+    "filterByTag": "Filter by tag",
+    "noTagsFound": "No tags found"
   },
   "card": {
     "by": "by {userName}",
@@ -145,14 +145,25 @@
     "favorite": "♥ Favorite",
     "downloadPng": "Download PNG",
     "socialKitButton": "Social media kit",
-    "editInCreator": "Edit in Creator",
+    "edit": "Edit",
+    "remixInCreator": "Remix in Creator",
     "favorited": "♥ Favorited",
     "unfavorite": "Unfavorite",
     "delete": "Delete",
     "deleteConfirm": "Delete this pattern? This cannot be undone.",
     "deleteFailed": "Delete failed. Please try again.",
     "loadingPattern": "Loading pattern…",
-    "patternLoadFailed": "Could not load the pattern. Showing the preview image instead."
+    "patternLoadFailed": "Could not load the pattern. Showing the preview image instead.",
+    "patternLoadFailedNoPreview": "Could not load the pattern.",
+    "saving": "Saving…",
+    "discardChangesTitle": "Discard changes?",
+    "discardChangesDescription": "Your edits will not be saved.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard",
+    "saveFailed": "Save failed. Please try again.",
+    "saveUploadFailed": "Upload failed. Check your connection and try again.",
+    "saveRisky": "This pattern was flagged by content moderation.",
+    "saveForbidden": "You do not have permission to edit this pattern."
   },
   "create": {
     "title": "Create Pattern",
@@ -311,6 +322,6 @@
   },
   "notFound": {
     "title": "Page not found",
-    "backHome": "Back to home"
+    "backToGallery": "Back to gallery"
   }
 }

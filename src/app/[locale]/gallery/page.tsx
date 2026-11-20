@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useDiagrams, useTags, useFavorite, useUnfavorite } from "@/services/diagramService";
 import { GalleryCard } from "@/components/gallery/GalleryCard";
+import { TagFilter } from "@/components/gallery/TagFilter";
 import { Spinner, EmptyState } from "@/components/ui/Spinner";
 import { useSession } from "@/providers/AuthProvider";
-import type { DiagramItem, TagItem } from "@/types/diagram";
+import type { DiagramItem } from "@/types/diagram";
 
 export default function GalleryPage() {
   const { data: session } = useSession();
@@ -36,11 +37,10 @@ export default function GalleryPage() {
   const favMutation = useFavorite();
   const unfavMutation = useUnfavorite();
 
-  const handleSearch = useCallback((value: string) => {
-    setKeyword(value);
-    const timer = setTimeout(() => setDebouncedKeyword(value), 300);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(keyword), 300);
     return () => clearTimeout(timer);
-  }, []);
+  }, [keyword]);
 
   const handleFavorite = (id: string) => {
     if (!session) return;
@@ -71,36 +71,22 @@ export default function GalleryPage() {
           type="text"
           placeholder={t("searchPlaceholder")}
           value={keyword}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => {
+            setKeyword(e.target.value);
+            setPage(1);
+          }}
           className="w-full rounded-full border-[3px] border-clay-border bg-surface px-5 py-3 text-sm text-text-primary shadow-inset outline-none transition-colors placeholder:text-text-muted focus:border-primary"
         />
 
         {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setTag("")}
-              className={`min-h-[44px] rounded-full border-[3px] px-4 py-2 text-xs font-semibold transition-[transform,box-shadow,background-color] active:translate-y-[3px] ${
-                !tag
-                  ? "border-primary-light bg-primary text-primary-ink shadow-button active:shadow-button-pressed"
-                  : "border-clay-border bg-surface text-text-secondary shadow-button-secondary hover:bg-gray-50 active:shadow-button-secondary-pressed"
-              }`}
-            >
-              {tc("all")}
-            </button>
-            {tags.map((tg: TagItem) => (
-              <button
-                key={tg._id}
-                onClick={() => setTag(tg.slug)}
-                className={`min-h-[44px] rounded-full border-[3px] px-4 py-2 text-xs font-semibold transition-[transform,box-shadow,background-color] active:translate-y-[3px] ${
-                  tag === tg.slug
-                    ? "border-primary-light bg-primary text-primary-ink shadow-button active:shadow-button-pressed"
-                    : "border-clay-border bg-surface text-text-secondary shadow-button-secondary hover:bg-gray-50 active:shadow-button-secondary-pressed"
-                }`}
-              >
-                {tg.name}
-              </button>
-            ))}
-          </div>
+          <TagFilter
+            tags={tags}
+            selectedTag={tag}
+            onSelect={(next) => {
+              setTag(next);
+              setPage(1);
+            }}
+          />
         )}
 
         {/* Size filter */}

@@ -14,7 +14,7 @@ import { getApiBase } from "@/lib/api-client";
  * OSS bucket 没开 CORS，浏览器 fetch 直链会被拦截；后端代理还顺带把草稿
  * 的读取权限收回服务端（草稿仅作者本人可读）。无 fileID 时回退旧直链。
  */
-function patternFileUrl(fileID: string | undefined, fallback: string): string {
+export function patternFileUrl(fileID: string | undefined, fallback: string): string {
   if (!fileID) return fallback;
   return `${getApiBase()}/api/diagram/file?key=${encodeURIComponent(fileID)}`;
 }

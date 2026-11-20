@@ -28,6 +28,8 @@ interface PatternEditorProps {
   underlayDataUrl: string | null;
   highlightedColorId: number | null;
   isProcessing: boolean;
+  /** 处理中覆盖层文案（默认「正在生成图案…」） */
+  processingLabel?: string;
   onPixelsChange: (pixels: number[][]) => void;
   /** 全屏覆盖层形态：画布区撑满剩余高度（替代 aspect-4/3 卡片） */
   fullscreen?: boolean;
@@ -53,6 +55,7 @@ export function PatternEditor({
   underlayDataUrl,
   highlightedColorId,
   isProcessing,
+  processingLabel,
   onPixelsChange,
   fullscreen = false,
   onToggleFullscreen,
@@ -393,6 +396,7 @@ export function PatternEditor({
   );
 
   const doUndo = useCallback(() => {
+    if (isProcessing) return;
     const prev = pastRef.current.pop();
     if (!prev) return;
     futureRef.current.push(cloneGrid(workingRef.current));
@@ -401,9 +405,10 @@ export function PatternEditor({
     bumpHistory();
     emitPixels(prev);
     scheduleDraw();
-  }, [emitPixels, scheduleDraw]);
+  }, [emitPixels, scheduleDraw, isProcessing]);
 
   const doRedo = useCallback(() => {
+    if (isProcessing) return;
     const next = futureRef.current.pop();
     if (!next) return;
     pastRef.current.push(cloneGrid(workingRef.current));
@@ -412,7 +417,7 @@ export function PatternEditor({
     bumpHistory();
     emitPixels(next);
     scheduleDraw();
-  }, [emitPixels, scheduleDraw]);
+  }, [emitPixels, scheduleDraw, isProcessing]);
 
   const applyZoomAt = useCallback(
     (factor: number, anchor: { x: number; y: number }) => {
@@ -616,13 +621,14 @@ export function PatternEditor({
   };
 
   const handleClearAll = useCallback(() => {
+    if (isProcessing) return;
     setClearOpen(false);
     pushHistory(cloneGrid(workingRef.current));
     const next = createEmptyGrid(gridWidth, gridHeight);
     workingRef.current = next;
     emitPixels(next);
     scheduleDraw();
-  }, [gridWidth, gridHeight, pushHistory, emitPixels, scheduleDraw]);
+  }, [gridWidth, gridHeight, pushHistory, emitPixels, scheduleDraw, isProcessing]);
 
   const handleAutoFill = useCallback(async () => {
     const img = underlayImgRef.current;
@@ -660,6 +666,8 @@ export function PatternEditor({
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
+      // 处理中（生成/保存）锁定像素编辑，避免快照与画布内容不一致
+      if (isProcessing) return;
       if (e.code === "Space") {
         // 让聚焦的按钮保留空格激活行为
         if ((e.target as HTMLElement)?.tagName === "BUTTON") return;
@@ -686,7 +694,7 @@ export function PatternEditor({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [doUndo, doRedo]);
+  }, [doUndo, doRedo, isProcessing]);
 
   const percent = Math.round((view.scale / fitScale) * 100);
   const hasUnderlay = !!underlayDataUrl;
@@ -717,11 +725,13 @@ export function PatternEditor({
           addRecent(id);
         }}
         onOpenPalette={() => setPaletteOpen(true)}
-        canUndo={pastRef.current.length > 0}
-        canRedo={futureRef.current.length > 0}
+        canUndo={!isProcessing && pastRef.current.length > 0}
+        canRedo={!isProcessing && futureRef.current.length > 0}
         onUndo={doUndo}
         onRedo={doRedo}
-        onClearAll={() => setClearOpen(true)}
+        onClearAll={() => {
+          if (!isProcessing) setClearOpen(true);
+        }}
         onAutoFill={handleAutoFill}
         autoFillPending={autoFillPending}
         hasUnderlay={hasUnderlay}
@@ -755,7 +765,9 @@ export function PatternEditor({
         {isProcessing && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-surface/80 animate-fade-in">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/30 border-t-primary" />
-            <p className="text-text-secondary">{tCreate("generating")}</p>
+            <p className="text-text-secondary">
+              {processingLabel ?? tCreate("generating")}
+            </p>
           </div>
         )}
       </div>

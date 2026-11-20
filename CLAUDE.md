@@ -25,7 +25,7 @@ src/
 ├── app/                          # Next.js App Router
 │   ├── [locale]/                 # 本地化路由段（en/zh 前缀）
 │   │   ├── layout.tsx            # 根布局（html lang + i18n Provider + 认证）
-│   │   ├── page.tsx              # 首页着陆页
+│   │   ├── page.tsx              # 根路径重定向到画廊
 │   │   ├── not-found.tsx         # 本地化 404
 │   │   ├── (auth)/login/         # 登录页（用户名密码 / 微信扫码 / Google）
 │   │   ├── (auth)/register/      # 注册页（用户名 + 昵称 + 密码）
@@ -90,7 +90,7 @@ src/
 
 ## 组件模式
 
-- 所有页面组件使用 `"use client"` 指令（除 `layout.tsx` 和 `page.tsx` 着陆页外）
+- 所有页面组件使用 `"use client"` 指令（除 `layout.tsx` 和根路径重定向 `page.tsx` 外）
 - 使用 Tailwind 的 `@theme inline` 定义设计令牌（颜色、字体、阴影、圆角）
 - 全局 CSS 变量定义在 `src/app/globals.css` 中
 - 组件使用 `interface` 定义 Props 类型

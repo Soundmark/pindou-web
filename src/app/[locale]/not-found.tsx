@@ -13,10 +13,10 @@ export default function NotFoundPage() {
       </h1>
       <p className="mt-2 text-lg text-text-secondary">{t("title")}</p>
       <Link
-        href="/"
+        href="/gallery"
         className="mt-8 inline-flex h-13 select-none items-center rounded-full border-[3px] border-primary-light bg-primary px-8 text-sm font-bold text-primary-ink shadow-button transition-[transform,box-shadow,background-color] duration-150 hover:bg-primary-dark active:translate-y-1 active:shadow-button-pressed"
       >
-        {t("backHome")}
+        {t("backToGallery")}
       </Link>
     </div>
   );

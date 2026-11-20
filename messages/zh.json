@@ -23,13 +23,6 @@
     "switchTo": "EN",
     "switchAria": "切换到 English"
   },
-  "landing": {
-    "titleLead": "把照片变成",
-    "titleAccent": "拼豆图纸",
-    "subtitle": "上传任意图片，一键转换为拼豆图纸。支持 Perler、Hama 与 Artkal 拼豆。",
-    "getStarted": "开始创作",
-    "browseGallery": "浏览画廊"
-  },
   "auth": {
     "welcome": "欢迎来到 Pindou",
     "subtitle": "登录以创建、保存和分享拼豆图纸",
@@ -108,7 +101,14 @@
     "sortColors": "颜色最多",
     "emptyTitle": "未找到图案",
     "emptyDescription": "试试调整搜索词或筛选条件",
-    "pageInfo": "{page} / {totalPages}"
+    "pageInfo": "{page} / {totalPages}",
+    "moreTags": "更多",
+    "moreTagsAria": "显示全部标签",
+    "tagsModalTitle": "全部标签",
+    "searchTagsPlaceholder": "搜索标签…",
+    "searchTagsAria": "搜索标签",
+    "filterByTag": "按标签筛选",
+    "noTagsFound": "没有找到标签"
   },
   "card": {
     "by": "作者：{userName}",
@@ -145,14 +145,25 @@
     "favorite": "♥ 收藏",
     "downloadPng": "下载 PNG",
     "socialKitButton": "社交媒体素材",
-    "editInCreator": "在创建器中编辑",
+    "edit": "编辑",
+    "remixInCreator": "复刻到创建器",
     "favorited": "♥ 已收藏",
     "unfavorite": "取消收藏",
     "delete": "删除",
     "deleteConfirm": "确定删除这个图案吗？此操作不可撤销。",
     "deleteFailed": "删除失败，请重试。",
     "loadingPattern": "正在加载图纸…",
-    "patternLoadFailed": "图纸加载失败，已显示预览图。"
+    "patternLoadFailed": "图纸加载失败，已显示预览图。",
+    "patternLoadFailedNoPreview": "图纸加载失败。",
+    "saving": "保存中…",
+    "discardChangesTitle": "放弃修改？",
+    "discardChangesDescription": "你的修改将不会被保存。",
+    "keepEditing": "继续编辑",
+    "discard": "放弃",
+    "saveFailed": "保存失败，请重试。",
+    "saveUploadFailed": "上传失败，请检查网络后重试。",
+    "saveRisky": "该图案未通过内容审核。",
+    "saveForbidden": "你没有权限编辑这个图案。"
   },
   "create": {
     "title": "创建图案",
@@ -311,6 +322,6 @@
   },
   "notFound": {
     "title": "页面不存在",
-    "backHome": "返回首页"
+    "backToGallery": "返回画廊"
   }
 }

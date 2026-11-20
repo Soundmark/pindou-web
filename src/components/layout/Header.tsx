@@ -29,7 +29,7 @@ export function Header() {
 
   const handleSignOut = () => {
     signOut();
-    router.push("/");
+    router.push("/gallery");
   };
 
   const navLinks = [
@@ -44,7 +44,7 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link
-            href="/"
+            href="/gallery"
             className="font-heading text-xl font-semibold text-primary-strong transition-transform hover:animate-wobble"
           >
             Pindou
